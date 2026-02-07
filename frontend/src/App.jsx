@@ -3,6 +3,9 @@ import Test from './components/Test.jsx'
 import { Route, Routes } from 'react-router-dom'
 import TeacherDash from './components/TeacherDash.jsx'
 import StudentDash from './components/StudentDash.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import Login from './components/Login.jsx'
+import AdminDash from './components/AdminDash.jsx'
 
 function App() {
 
@@ -10,8 +13,23 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<Test />}></Route>
-        <Route path="/teacher" element={<TeacherDash />}></Route>
-        <Route path="/student" element={<StudentDash />}></Route>
+        <Route path="/login" element={<Login />}></Route>
+        <Route path="/teacher" element={
+          <ProtectedRoute>
+          <TeacherDash />
+          </ProtectedRoute>
+          }></Route>
+        <Route path="/student" element={
+          <ProtectedRoute>
+          <StudentDash />
+          </ProtectedRoute>
+          }></Route>
+    // AdminDash
+    <Route path="/admin" element= {
+          <ProtectedRoute allowedRole={['ADMIN']}>
+          <AdminDash />
+          </ProtectedRoute>
+    } ></Route>
     </Routes>
     </>
   )
