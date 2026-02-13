@@ -24,13 +24,15 @@ function AdminDash() {
     setTeacherMessage({ text: '', isError: false });
     setGeneratedPassword(null);
     try {
+      const formData = new FormData();
+      Object.entries(teacherForm).forEach(([k, v]) => { if (v) formData.append(k, v); });
+      const avatarFile = e.target.querySelector('input[name="avatar"]')?.files?.[0];
+      if (avatarFile) formData.append('avatar', avatarFile);
+
       const res = await fetch('http://localhost:3000/api/admin/teachers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(teacherForm)
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
       });
       const data = await res.json();
       if (res.ok) {
@@ -50,13 +52,15 @@ function AdminDash() {
     setStudentMessage({ text: '', isError: false });
     setGeneratedPassword(null);
     try {
+      const formData = new FormData();
+      Object.entries(studentForm).forEach(([k, v]) => { if (v) formData.append(k, v); });
+      const avatarFile = e.target.querySelector('input[name="avatar"]')?.files?.[0];
+      if (avatarFile) formData.append('avatar', avatarFile);
+
       const res = await fetch('http://localhost:3000/api/admin/students', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(studentForm)
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
       });
       const data = await res.json();
       if (res.ok) {
@@ -107,8 +111,10 @@ function AdminDash() {
             <input type="tel" placeholder="Phone" value={teacherForm.tel} onChange={e => setTeacherForm(f => ({ ...f, tel: e.target.value }))} className="input input-bordered w-full" />
             <input type="email" placeholder="Email" value={teacherForm.email} onChange={e => setTeacherForm(f => ({ ...f, email: e.target.value }))} className="input input-bordered w-full" required />
             <input type="text" placeholder="Department" value={teacherForm.department} onChange={e => setTeacherForm(f => ({ ...f, department: e.target.value }))} className="input input-bordered w-full" />
-            {/* <input type="text" placeholder="Username" value={teacherForm.username} onChange={e => setTeacherForm(f => ({ ...f, username: e.target.value }))} className="input input-bordered w-full" required /> */}
-            {/* <input type="password" placeholder="Password" value={teacherForm.password} onChange={e => setTeacherForm(f => ({ ...f, password: e.target.value }))} className="input input-bordered w-full" required /> */}
+            <div className="col-span-2">
+              <label>Avatar</label>
+              <input type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" required />
+            </div>
           </div>
           <button type="submit" className="btn btn-primary">Create Teacher</button>
         </form>
@@ -129,8 +135,10 @@ function AdminDash() {
             <input type="date" placeholder="DOB" value={studentForm.dob} onChange={e => setStudentForm(f => ({ ...f, dob: e.target.value }))} className="input input-bordered w-full" />
             <input type="tel" placeholder="Phone" value={studentForm.tel} onChange={e => setStudentForm(f => ({ ...f, tel: e.target.value }))} className="input input-bordered w-full" />
             <input type="text" placeholder="Address" value={studentForm.adress} onChange={e => setStudentForm(f => ({ ...f, adress: e.target.value }))} className="input input-bordered w-full col-span-2" />
-            {/* <input type="text" placeholder="Username" value={studentForm.username} onChange={e => setStudentForm(f => ({ ...f, username: e.target.value }))} className="input input-bordered w-full" required /> */}
-            {/* <input type="password" placeholder="Password" value={studentForm.password} onChange={e => setStudentForm(f => ({ ...f, password: e.target.value }))} className="input input-bordered w-full" required /> */}
+            <div className="col-span-2">
+              <label>Avatar</label>
+              <input type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" required />
+            </div>
           </div>
           <button type="submit" className="btn btn-primary">Create Student</button>
         </form>

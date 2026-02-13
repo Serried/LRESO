@@ -98,6 +98,23 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = rows[0];
+        let first_name = null, last_name = null;
+
+        if (user.refID) {
+          if (user.role === "TEACHER") {
+            const [data] = await pool.query("SELECT first_name, last_name FROM Teacher WHERE teacherID = ?", [user.refID]);
+            if (data.length) {
+              first_name = data[0].first_name
+              last_name = data[0].last_name
+            }
+          } else if (user.role === "Student") {
+            const [data] = await pool.query("SELECT first_name, last_name FROM Student WHERE studentID = ?", [user.refID]);
+            if (data.length) {
+              first_name = data[0].first_name;
+              last_name = data[0].last_name;
+            }
+          }
+        }
 
         if (user.status !== 'ACTIVE') {
             res.status(401).json({ success: false, message: "บัญชีนี้ถูกปิดใช้งาน"});
@@ -123,7 +140,9 @@ app.post('/api/login', async (req, res) => {
                 username: user.username,
                 role: user.role,
                 refID: user.refID,
-                avatar: user.avatar
+                avatar: user.avatar,
+                first_name,
+                last_name
             }
         });
     } catch (e) {
@@ -205,12 +224,15 @@ function requireAdmin(req, res, next) {
 
 // ================================================= เริ่มงงละอะไรเยอะแยะวะ
 // (Admin) create teacher endpoint
-app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
+app.post('/api/admin/teachers', requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
       const { first_name, last_name, gender, dob, tel, email, department } = req.body;
   
       if (!first_name || !last_name || !email) {
         return res.status(400).json({ success: false, message: 'Username, password, first name, last name, and email are required' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'กรุณาอัพโหลดรูปโปรไฟล์' });
       }
       const password = generatePassword();
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -222,10 +244,11 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
   
       const teacherID = teacherResult.insertId;
       const username = `${first_name.toLowerCase()}.${last_name.toLowerCase().substring(0, 1)}`;
-  
+      const avatarPath = `avatars/${req.file.filename}`;
+
       await pool.query(
-        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
-        [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE']
+        'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+        [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', avatarPath]
       );
   
       res.json({ success: true, message: `สร้างบัญชี (ครูผู้สอน) - ${username}:${password} สำเร็จ!`, password });
@@ -236,29 +259,31 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
   });
 
   // (Admin) create student endpoint
-app.post('/api/admin/students', requireAdmin, async (req, res) => {
+app.post('/api/admin/students', requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
         const { first_name, last_name, gender, dob, tel, adress } = req.body;
         
         if ( !first_name || !last_name) {
             return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบทุกช่อง' });
         }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'กรุณาอัพโหลดรูปโปรไฟล์' });
+        }
         const password = generatePassword();
         const hashedPassword = await bcrypt.hash(password, 10);
-        //Insert into student table
         const [studentResult] = await pool.query(
             'INSERT INTO Student (first_name, last_name, gender, dob, tel, address, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [first_name, last_name, gender || null, dob || null, tel || null, adress || null, 'STUDYING']
         );
         
         const studentID = studentResult.insertId;
-        
         const username = await createStudentUsername(pool);
-      await pool.query(
-        // Insert into user table
-        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
-        [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE']
-      );
+        const avatarPath = `avatars/${req.file.filename}`;
+
+        await pool.query(
+            'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+            [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE', avatarPath]
+        );
   
       res.json({ success: true, message: `สร้างบัญชี (นักเรียน) - ${username}:${password} สำเร็จ!`, password });
     } catch (e) {
