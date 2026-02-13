@@ -1,84 +1,130 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
 
-        try {
-            const res = await fetch('http://localhost:3000/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password}),
-            });
+    try {
+      const res = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-            const data = await res.json();
+      const data = await res.json();
 
-            if (!res.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
 
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-            if (data.user.role === 'TEACHER') {
-                navigate('/teacher')
-            } else if (data.user.role === 'STUDENT') {
-                navigate('/student')
-            } else if (data.user.role === 'ADMIN') {
-                navigate('/admin')
-            }
-        } catch (e) {
-            setError(e.message);
-        }
+      if (data.user.role === "TEACHER") {
+        navigate("/teacher");
+      } else if (data.user.role === "STUDENT") {
+        navigate("/student");
+      } else if (data.user.role === "ADMIN") {
+        navigate("/admin");
+      }
+    } catch (e) {
+      setError(e.message);
     }
+  };
 
-    
   return (
     <>
-    <div className='min-h-screen bg-cover bg-center bg-no-repeat' style={{ backgroundImage: "url('/kmitl.png')"}}>
-    <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-red-100 text-red-700 px-4 py-2 rounded">
-              {error}
-            </div>
-          )}
-
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="input input-bordered w-full"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input input-bordered w-full"
-            required
-          />
-
-          <button
-            type="submit"
-            className="btn btn-primary w-full"
+      <div className="relative min-h-screen overflow-hidden flex items-center justify-center">
+        <div
+          className="absolute inset-0 bg-no-repeat animate-bg-float"
+          style={{
+            backgroundImage: "url('/kmitl.png')",
+            backgroundSize: "120% auto",
+            backgroundPosition: "0% center",
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-black/75" aria-hidden="true" />
+        <div id="container" className="relative z-10 flex flex-row gap-5">
+          <div
+            id="login-box"
+            className="p-5 bg-[#C2C2C2]/50 backdrop-blur-sm rounded-2xl"
           >
-          </button>
-        </form>
-    </div>
+            <div id="login-content">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="bg-red-100 text-red-700 px-4 py-2 rounded">
+                    {error}
+                  </div>
+                )}
+                <p className="text-center text-white text-3xl font-bold">
+                  เข้าสู่ระบบ
+                </p>
+                <label
+                  for="username"
+                  className="text-xl text-white drop-shadow-[3_3px_1px_rgba(0,0,0,0.25)]"
+                >
+                  <h1>รหัสนักเรียน</h1>
+                </label>
+                <input
+                  type="text"
+                  placeholder="ชื่อผู้ใช้"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input input-bordered w-full opacity-50 mt-3"
+                  id="username"
+                  required
+                />
+                <label
+                  for="password"
+                  className="text-xl text-white drop-shadow-[3_3px_1px_rgba(0,0,0,0.25)]"
+                >
+                  <h1>รหัสผ่าน</h1>
+                </label>
+                <input
+                  type="password"
+                  placeholder="รหัสผ่าน"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input input-bordered w-full opacity-50 mt-3"
+                  id="password"
+                  required
+                />
+
+                <button
+                  type="submit"
+                  className="btn w-full text-white bg-[#FF842C] border-none"
+                >
+                  ดำเนินการต่อ
+                </button>
+              </form>
+            </div>
+          </div>
+          <div
+            id="news"
+            className="p-5 bg-[#C2C2C2]/50 backdrop-blur-sm rounded-2xl"
+          >
+            <p className="text-3xl text-white text-center font-bold px-10">
+              ข่าวสาร/ประชาสัมพันธ์
+            </p>
+            {/* hard coded เด้อ */}
+            <p className="text-center mt-5 text-white">
+              ขณะนี้ยังไม่มีประกาศ/ประชาสัมพันธ์ใด ๆ
+            </p>
+          </div>
+        </div>
+      </div>
     </>
-  )
+  );
 }
 
-export default Login
+export default Login;
