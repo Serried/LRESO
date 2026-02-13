@@ -107,7 +107,7 @@ app.post('/api/login', async (req, res) => {
               first_name = data[0].first_name
               last_name = data[0].last_name
             }
-          } else if (user.role === "Student") {
+          } else if (user.role === "STUDENT") {
             const [data] = await pool.query("SELECT first_name, last_name FROM Student WHERE studentID = ?", [user.refID]);
             if (data.length) {
               first_name = data[0].first_name;
