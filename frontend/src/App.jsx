@@ -1,18 +1,17 @@
-import { useState } from 'react'
-import Test from './components/Test.jsx'
 import { Route, Routes } from 'react-router-dom'
 import TeacherDash from './components/TeacherDash.jsx'
 import StudentDash from './components/StudentDash.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Login from './components/Login.jsx'
 import AdminDash from './components/AdminDash.jsx'
+import RoleDashboardRedirect from './components/RoleDashboardRedirect.jsx'
 
 function App() {
 
   return (
     <>
       <Routes>
-        <Route path="/" element={<Login />}></Route>
+        <Route path="/" element={<RoleDashboardRedirect />} />
         <Route path="/login" element={<Login />}></Route>
         <Route path="/teacher" element={
           <ProtectedRoute>
