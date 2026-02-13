@@ -1,4 +1,5 @@
 import React, {useEffect} from 'react'
+import NavBar from './NavBar';
 import { Link } from 'react-router-dom'
 
 function TeacherDash() {
@@ -16,6 +17,7 @@ function TeacherDash() {
   }, []);
   return (
     <>
+    <NavBar />
     <h1>This is teacher dashboard!</h1>
     <Link to="/login">Back to login</Link>
     </>

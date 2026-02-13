@@ -19,7 +19,7 @@ async function createAdmin() {
         }
 
         await pool.query(
-            'INSERT INTO User (username, password_hash, role, status, createdAt) VALUES (?, ?, ?, ?, NOW())',
+            'INSERT INTO User (username, password_hash, role, status, createdAt) VALUES (?, ?, ?, ?, datetime(\'now\'))',
             [username, hashedPassword, 'ADMIN', 'ACTIVE']
         );
 

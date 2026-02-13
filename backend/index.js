@@ -1,14 +1,39 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const pool = require('./db');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-require('dotenv').config(); // เอามาก่อน เผื่อใช้
+const multer = require('multer');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// servve uploaded avatars
+const uploadsDir = path.join(__dirname, 'uploads', 'avatars');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// multer config ไว้อัพรูปปก user
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const ext = (file.mimetype.match(/\/(jpeg|jpg|png|gif|webp)$/) || ['', 'jpg'])[1];
+    cb(null, `user-${Date.now()}.${ext}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 mb
+  fileFilter: (req, file, cb) => {
+    if (/image\/(jpeg|jpg|png|gif|webp)/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only images (jpeg, png, gif, webp) allowed'));
+  }
+});
 
 // password random
 function generatePassword(length = 12) {
@@ -45,7 +70,7 @@ async function createStudentUsername(pool) {
 
 
 app.get('/api/health', (req, res) => {
-    res.json({status: 'OK', message: 'Backend is running'});
+    res.json({status: 'OK', message: 'เซิร์ฟเวอร์กำลังทำงาน'});
 });
 
 app.get('/api/test-db', async (req, res) => {
@@ -63,25 +88,25 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
 
         if (!username || !password) {
-            return res.status(400).json({ success: false, message: 'Username and password are required.'});
+            return res.status(400).json({ success: false, message: 'กรุณาใส่ชื่อบัญชีผู้ใช้และรหัสผ่าน'});
         }
 
-        const [rows] = await pool.query('SELECT userID, username, password_hash, role, refID, status FROM User WHERE username = ?', [username]);
+        const [rows] = await pool.query('SELECT userID, username, password_hash, role, refID, status, avatar FROM User WHERE username = ?', [username]);
         
         if (rows.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid username or password.'});
+            return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'});
         }
 
         const user = rows[0];
 
         if (user.status !== 'ACTIVE') {
-            res.status(401).json({ success: false, message: "Inactive account."});
+            res.status(401).json({ success: false, message: "บัญชีนี้ถูกปิดใช้งาน"});
         }
         
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
-            return res.status(401).json({ success: false, message: "Invalid credentials"});
+            return res.status(401).json({ success: false, message: "ข้อมูลไม่ถูกต้อง"});
         }
 
         const token = jwt.sign(
@@ -97,12 +122,13 @@ app.post('/api/login', async (req, res) => {
                 id: user.userID,
                 username: user.username,
                 role: user.role,
-                refID: user.refID
+                refID: user.refID,
+                avatar: user.avatar
             }
         });
     } catch (e) {
         console.log(e);
-        res.status(500).json({ success: false, message: "Check server console"});
+        res.status(500).json({ success: false, message: "กรุณาตรวจสอบผลลัพธ์ที่ฝั่งเซิร์ฟเวอร์"});
     }
 })
 
@@ -115,13 +141,13 @@ app.get('/api/teachers/:id', async (req, res) => {
       );
   
       if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Teacher not found' });
+        return res.status(404).json({ success: false, message: 'ไม่พบครูผู้สอน' });
       }
   
       res.json({ success: true, data: rows[0] });
     } catch (e) {
       console.error(e);
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
     }
   });
 
@@ -134,31 +160,46 @@ app.get('/api/students/:id', async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Student not found' });
+      return res.status(404).json({ success: false, message: 'ไม่พบนักเรียน' });
     }
 
     res.json({ success: true, data: rows[0] });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
   }
 });
+
+// Auth middleware (ทุกคนที่ login แล้ว)
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'ไม่ได้รับอนุญาต' });
+  }
+  try {
+    const token = authHeader.split(' ')[1];
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (e) {
+    return res.status(401).json({ success: false, message: 'โทเคนไม่ถูกต้อง' });
+  }
+}
 
 // ADMIN ONLY MIDDLEWARE
 function requireAdmin(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-        return res.status(401).json({ success: false, message: 'Unauthorized'});
+        return res.status(401).json({ success: false, message: 'ไมไ่ด้รับอนุญาต'});
     } try {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== "ADMIN") {
-            return res.status(403).json({ success: false, message: 'This is for admin only'});
+            return res.status(403).json({ success: false, message: 'สำหรับผู้แดแลระบบเท่านั้น'});
         }
         req.user = decoded;
         next();
     } catch (e) {
-        return res.status(401).json({ success: false, message: 'Invalid token'});
+        return res.status(401).json({ success: false, message: 'โทเคนไม่ถูกต้อง'});
     }
 } 
 
@@ -183,7 +224,7 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
       const username = `${first_name.toLowerCase()}.${last_name.toLowerCase().substring(0, 1)}`;
   
       await pool.query(
-        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, NOW())',
+        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
         [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE']
       );
   
@@ -200,7 +241,7 @@ app.post('/api/admin/students', requireAdmin, async (req, res) => {
         const { first_name, last_name, gender, dob, tel, adress } = req.body;
         
         if ( !first_name || !last_name) {
-            return res.status(400).json({ success: false, message: 'Username, password, first name, and last name are required' });
+            return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบทุกช่อง' });
         }
         const password = generatePassword();
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -215,7 +256,7 @@ app.post('/api/admin/students', requireAdmin, async (req, res) => {
         const username = await createStudentUsername(pool);
       await pool.query(
         // Insert into user table
-        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, NOW())',
+        'INSERT INTO User (username, password_hash, role, refID, status, createdAt) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
         [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE']
       );
   
@@ -225,6 +266,24 @@ app.post('/api/admin/students', requireAdmin, async (req, res) => {
       res.status(500).json({ success: false, message: e.message });
     }
   });
+
+// Upload avatar (logged-in user updates own profile)
+app.post('/api/users/me/avatar', requireAuth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'กรุณาอัพโหลดไฟล์' });
+    }
+    const userId = req.user.userID;
+    const avatarPath = `avatars/${req.file.filename}`;
+
+    await pool.query('UPDATE User SET avatar = ? WHERE userID = ?', [avatarPath, userId]);
+
+    res.json({ success: true, avatar: avatarPath });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
 
 const PORT = 3000;
 app.listen(PORT, () => {
