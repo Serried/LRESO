@@ -36,8 +36,6 @@ function Login() {
             } else if (data.user.role === 'ADMIN') {
                 navigate('/admin')
             }
-
-            window.location.reload();
         } catch (e) {
             setError(e.message);
         }

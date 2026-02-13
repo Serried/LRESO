@@ -7,8 +7,8 @@ function ProtectedRoute({children, allowedRole}) {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const location = useLocation();
 
-    if (!token) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+    if (!token || token === 'undefined' || token === 'null') {
+      return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     if (allowedRole && !allowedRole.includes(user.role)) {
