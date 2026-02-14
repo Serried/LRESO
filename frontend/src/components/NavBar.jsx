@@ -22,11 +22,11 @@ function NavBar() {
     <div className='w-full h-15 bg-[#ff842c] flex justify-between items-center'>
     <div id="left" className='items-center flex flex-row'>
         <img className='rounded-full w-[45px] h-[45px] object-cover mx-5' src="https://placehold.co/45" alt="school logo"></img>
-        <p className='text-xl text-white'>โรงเรียนลังกระบาด</p>
+        <p className='text-xl text-white font-semibold'>โรงเรียนลังกระบาด</p>
     </div>
     {user.id && (
       <div id="right" className="flex items-center gap-2 pr-4">
-        <p className='text-xl text-white'>{displayName}</p>
+        <p className='text-xl text-white font-semibold'>{displayName}</p>
         
         <button onClick={handleLogOut} type="button" id="logout" className='cursor-pointer mx-5 tooltip tooltip-bottom' data-tip='ออกจากระบบ'>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="size-6">

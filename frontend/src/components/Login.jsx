@@ -70,8 +70,8 @@ function Login() {
                   เข้าสู่ระบบ
                 </p>
                 <label
-                  for="username"
-                  className="text-xl text-white drop-shadow-[3_3px_1px_rgba(0,0,0,0.25)]"
+                  htmlFor="username"
+                  className="text-xl text-white text-shadow-xl text-shadow-black"
                 >
                   <h1>รหัสนักเรียน</h1>
                 </label>
@@ -85,8 +85,8 @@ function Login() {
                   required
                 />
                 <label
-                  for="password"
-                  className="text-xl text-white drop-shadow-[3_3px_1px_rgba(0,0,0,0.25)]"
+                  htmlFor="password"
+                  className="text-xl text-white text-shadow-xl text-shadow-black"
                 >
                   <h1>รหัสผ่าน</h1>
                 </label>

@@ -1,30 +1,142 @@
-import React, {useEffect} from 'react'
-import { Link } from 'react-router-dom'
-import NavBar from './NavBar';
+import React, { useEffect, useState } from "react";
+import NavBar from "./NavBar";
 
-
+const API_BASE = "http://localhost:3000";
 
 function StudentDash() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const studentID = user.refID;
-    
-    useEffect(() => {
-      if (studentID) {
-        fetch(`http://localhost:3000/api/students/${studentID}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const first_name = user.first_name;
+  const last_name = user.last_name;
+  const ID = user.refID;
+
+  const avatarUrl = `http://localhost:3000/uploads/${user.avatar}`;
+  const studentID = user.refID;
+  const [clientTime, setClientTime] = useState(() => new Date());
+  const [serverTime, setServerTime] = useState(null);
+  const [clientTimeAtFetch, setClientTimeAtFetch] = useState(null);
+  const [student, setStudent] = useState(null);
+  const [studentClasses, setStudentClasses] = useState([]);
+
+  useEffect(() => {
+    if (studentID) {
+      fetch(`${API_BASE}/api/students/${studentID}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+        .then((res) => res.json())
+        .then((res) => res.success && setStudent(res.data))
+        .catch((err) => console.error(err));
+
+      fetch(`${API_BASE}/api/students/${studentID}/classes`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+        .then((res) => res.json())
+        .then((res) => res.success && setStudentClasses(res.data || []))
+        .catch((err) => console.error(err));
+    }
+  }, [studentID]);
+
+  useEffect(() => {
+    const tick = setInterval(() => setClientTime(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const fetchServerTime = () => {
+      const clientNow = new Date();
+      fetch(`${API_BASE}/api/time`)
+        .then((res) => res.json())
+        .then(({ serverTime: serverTimeIso }) => {
+          if (serverTimeIso) {
+            setServerTime(new Date(serverTimeIso));
+            setClientTimeAtFetch(clientNow);
+          }
         })
-          .then(res => res.json())
-          .then(data => console.log(data))
-          .catch(err => console.error(err));
-      }
-    }, []);
+        .catch(() => {});
+    };
+    fetchServerTime();
+    const interval = setInterval(fetchServerTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (d) => (d ? d.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "medium" }) : "—");
+
+  const runningServerTime = serverTime && clientTimeAtFetch ? new Date(serverTime.getTime() + (clientTime.getTime() - clientTimeAtFetch.getTime())) : serverTime;
+  if (!student) {
+    return (
+      <>
+        <NavBar />
+        <p>Loading...</p>
+      </>
+    );
+  }
+  const currentYear = new Date().getFullYear();
+  const birthYear = new Date(student.dob).getFullYear();
+  const age = currentYear - birthYear;
+
   return (
     <>
-    <NavBar />
-    <h1>This is student dashboard!</h1>
-    <Link to='/login'>Back to login</Link>
+      <NavBar />
+      <div id="container" className="flex-row flex">
+        <div id="left" className="bg-white border-[#ddd] border-1 h-full p-5">
+          <p>
+            เวลาของคุณ: <strong>{formatTime(clientTime)}</strong>
+          </p>
+          <p>
+            เวลาของเซิร์ฟเวอร์: <strong>{formatTime(serverTime)}</strong>
+          </p>
+        </div>
+        <div id="middle" className="grid grid-cols-2 gap-10 justify-center items-center">
+          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+            <div className="p-4">
+              <h5 className="text-lg font-bold">ตารางเรียนส่วนบุคคล</h5>
+              <p className="text-md mb-10">ตรวจสอบตารางเรียนส่วนบุคคล</p>
+            </div>
+          </div>
+          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+            <div className="p-4">
+              <h5 className="text-lg font-bold">ข้อมูลส่วนบุคคล</h5>
+              <p className="text-md mb-10">ตรวจสอบข้อมูลส่วนบุคคล</p>
+            </div>
+          </div>
+          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+            <div className="p-4">
+              <h5 className="text-lg font-bold">ข่าวสาร / ประชาสัมพันธ์</h5>
+              <p className="text-md mb-10">ติดตามข่าวสาร / ประชาสัมพันธ์</p>
+            </div>
+          </div>
+          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+            <div className="p-4">
+              <h5 className="text-lg font-bold">ติดต่อฝ่ายทะเบียน</h5>
+              <p className="text-md mb-10">ติดต่อฝ่ายทะเบียน</p>
+            </div>
+          </div>
+        </div>
+        <div id="right" className="flex flex-col justify-center items-center">
+          <img src={avatarUrl} alt="" className="rounded-full w-3xs" />
+          {student && (
+            <p>
+              {student.gender == "M" ? "นาย" : "นางสาว"}
+              {student.first_name} {student.last_name}
+            </p>
+          )}
+          {/* ยังไม่ได้กำหนดว่านักเรียนคนไหนอยู่ห้องไหน */}
+          <p>{user.username}</p>
+          <p>ชั้น:</p>
+          <p>อายุ: {age} ปี</p>
+          {/* เดี๋ยวเอามาใส่ */}
+          <p>แผนการเรียน: </p>
+          <p>สถานภาพนักเรียน: {student.status == "STUDYING" ? "เรียน" : "พ้นสภาพ"}</p>
+          <button type="submit" className="btn w-full text-white bg-[#FF842C] border-none">
+            แจ้งปัญหา
+          </button>
+        </div>
+      </div>
     </>
-  )
+  );
 }
 
-export default StudentDash
+export default StudentDash;

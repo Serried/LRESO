@@ -80,7 +80,11 @@ app.get('/api/test-db', async (req, res) => {
     } catch (e) {
         res.status(500).json({success: false, message: e.message});
     }
-})
+});
+
+app.get('/api/time', (req, res) => {
+    res.json({ serverTime: new Date().toISOString() });
+});
 
 // login
 app.post('/api/login', async (req, res) => {
@@ -92,8 +96,10 @@ app.post('/api/login', async (req, res) => {
         }
 
         const [rows] = await pool.query('SELECT userID, username, password_hash, role, refID, status, avatar FROM User WHERE username = ?', [username]);
-        
+
+        // DEBUG: ไม่เจอ user
         if (rows.length === 0) {
+            console.log('[LOGIN DEBUG] User not found:', username);
             return res.status(401).json({ success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'});
         }
 
@@ -115,14 +121,16 @@ app.post('/api/login', async (req, res) => {
             }
           }
         }
-
+        // user ไม่ status ACTIVE
         if (user.status !== 'ACTIVE') {
-            res.status(401).json({ success: false, message: "บัญชีนี้ถูกปิดใช้งาน"});
+            console.log('[LOGIN DEBUG] User status not ACTIVE:', user.status, 'for', username);
+            return res.status(401).json({ success: false, message: "บัญชีนี้ถูกปิดใช้งาน"});
         }
-        
-        const isMatch = await bcrypt.compare(password, user.password_hash);
 
+        const isMatch = await bcrypt.compare(password, user.password_hash || '');
+        // รหัสไม่ตรง
         if (!isMatch) {
+            console.log('[LOGIN DEBUG] Password mismatch for user:', username, '(hash exists:', !!user.password_hash, 'hash starts with $2:', (user.password_hash || '').startsWith('$2'));
             return res.status(401).json({ success: false, message: "ข้อมูลไม่ถูกต้อง"});
         }
 
@@ -174,7 +182,7 @@ app.get('/api/teachers/:id', async (req, res) => {
 app.get('/api/students/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT studentID, first_name, last_name, gender, dob, tel, status FROM Student WHERE studentID =?",
+      "SELECT studentID, first_name, last_name, gender, dob, tel, address, status FROM Student WHERE studentID = ?",
       [req.params.id]
     );
 
@@ -183,6 +191,21 @@ app.get('/api/students/:id', async (req, res) => {
     }
 
     res.json({ success: true, data: rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
+  }
+});
+
+
+app.get('/api/students/:id/classes', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM StudentClass sc 
+       WHERE sc.studentID = ?`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: rows });
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
