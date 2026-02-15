@@ -77,8 +77,8 @@ function StudentDash() {
   return (
     <>
       <NavBar />
-      <div id="container" className="flex-row flex">
-        <div id="left" className="bg-white border-[#ddd] border-1 h-full p-5">
+      <div id="container" className="flex h-screen w-full gap-6 bg-gray-100">
+        <div id="left" className="w-1/5 bg-white border border-[#ddd] rounded-xl p-5">
           <p>
             เวลาของคุณ: <strong>{formatTime(clientTime)}</strong>
           </p>
@@ -86,37 +86,37 @@ function StudentDash() {
             เวลาของเซิร์ฟเวอร์: <strong>{formatTime(serverTime)}</strong>
           </p>
         </div>
-        <div id="middle" className="grid grid-cols-2 gap-10 justify-center items-center">
-          <Link to="/student/schedule">
-          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+        <div id="middle" className="w-3/5 min-w-0 grid grid-cols-2 p-6 gap-6 content-start">
+          <Link to="/student/schedule" className="block w-full h-full">
+          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
               <h5 className="text-lg font-bold">ตารางเรียนส่วนบุคคล</h5>
               <p className="text-md mb-10">ตรวจสอบตารางเรียนส่วนบุคคล</p>
             </div>
           </div>
           </Link>
-          <Link to="/student/data">
-          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+          <Link to="/student/data" className="block w-full h-full">
+          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
               <h5 className="text-lg font-bold">ข้อมูลส่วนบุคคล</h5>
               <p className="text-md mb-10">ตรวจสอบข้อมูลส่วนบุคคล</p>
             </div>
           </div>
           </Link>
-          <Link to="/student/news">
-          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+          <Link to="/student/news" className="block w-full h-full">
+          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
               <h5 className="text-lg font-bold">ข่าวสาร / ประชาสัมพันธ์</h5>
               <p className="text-md mb-10">ติดตามข่าวสาร / ประชาสัมพันธ์</p>
             </div>
           </div>
           </Link>
-          <Link to="/student/help">
-          <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
+          <Link to="/student/help" className="block w-full h-full">
+          <div id="card" className="ww-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
               <h5 className="text-lg font-bold">ติดต่อฝ่ายทะเบียน</h5>
               <p className="text-md mb-10">ติดต่อฝ่ายทะเบียน</p>
@@ -124,23 +124,28 @@ function StudentDash() {
           </div>
           </Link>
         </div>
-        <div id="right" className="flex flex-col justify-center items-center">
+        <div id="right" className="w-1/5 bg-white border border-[#ddd] rounded-xl flex flex-col items-center justify-start">
+          <div className="mt-42">
           <img src={avatarUrl} alt="" className="rounded-full w-3xs" />
+          </div>
           {student && (
-            <p>
+            <p className="text-2xl font-bold mt-5">
               {student.gender == "M" ? "นาย" : "นางสาว"}
               {student.first_name} {student.last_name}
             </p>
           )}
           {/* ยังไม่ได้กำหนดว่านักเรียนคนไหนอยู่ห้องไหน */}
-          <p>{user.username}</p>
+          <p className="text-2xl font-bold">{user.username}</p>
+          <div className="flex flex-row gap-15">
           <p>ชั้น:</p>
           <p>อายุ: {age} ปี</p>
+          </div>
           {/* เดี๋ยวเอามาใส่ */}
+          
           <p>แผนการเรียน: </p>
           <p>สถานภาพนักเรียน: {student.status == "STUDYING" ? "เรียน" : "พ้นสภาพ"}</p>
           <Link to="/bug-report">
-          <button type="submit" className="btn w-full text-white bg-[#FF842C] border-none">
+          <button type="submit" className="mt-5 btn w-full text-white bg-[#FF842C] border-none">
             แจ้งปัญหา
           </button>
           </Link>
