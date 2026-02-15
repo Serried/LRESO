@@ -25,13 +25,13 @@ function App() {
   <Route element={<ProtectedRoute />}>
 
     <Route path="/teacher" element={<TeacherDash />} />
-    <Route path="/student" element={<StudentDash />} />
+    <Route path="/me/student" element={<StudentDash />} />
 
     {/* student */}
-    <Route path="/student/data" element={<S_Kormoon />} />
-    <Route path="/student/news" element={<S_News />} />
-    <Route path="/student/schedule" element={<S_Schedule />} />
-    <Route path="/student/help" element={<S_ContactStaff />} />
+    <Route path="/me/data" element={<S_Kormoon />} />
+    <Route path="/me/news" element={<S_News />} />
+    <Route path="/me/schedule" element={<S_Schedule />} />
+    <Route path="/me/help" element={<S_ContactStaff />} />
 
   </Route>
 

@@ -11,30 +11,33 @@ function StudentDash() {
   const ID = user.refID;
 
   const avatarUrl = `http://localhost:3000/uploads/${user.avatar}`;
-  const studentID = user.refID;
   const [clientTime, setClientTime] = useState(() => new Date());
   const [serverTime, setServerTime] = useState(null);
   const [clientTimeAtFetch, setClientTimeAtFetch] = useState(null);
   const [student, setStudent] = useState(null);
   const [studentClasses, setStudentClasses] = useState([]);
 
-  useEffect(() => {
-    if (studentID) {
-      fetch(`${API_BASE}/api/students/${studentID}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
-        .then((res) => res.json())
-        .then((res) => res.success && setStudent(res.data))
-        .catch((err) => console.error(err));
+useEffect(() => {
 
-      fetch(`${API_BASE}/api/students/${studentID}/classes`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
-        .then((res) => res.json())
-        .then((res) => res.success && setStudentClasses(res.data || []))
-        .catch((err) => console.error(err));
-    }
-  }, [studentID]);
+  fetch(`${API_BASE}/api/me/student`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`
+    },
+  })
+    .then((res) => res.json())
+    .then((res) => res.success && setStudent(res.data))
+    .catch(console.error);
+
+  fetch(`${API_BASE}/api/me/student/classes`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`
+    },
+  })
+    .then((res) => res.json())
+    .then((res) => res.success && setStudentClasses(res.data || []))
+    .catch(console.error);
+
+}, []);
 
   useEffect(() => {
     const tick = setInterval(() => setClientTime(new Date()), 1000);
@@ -87,7 +90,7 @@ function StudentDash() {
           </p>
         </div>
         <div id="middle" className="w-3/5 min-w-0 grid grid-cols-2 p-6 gap-6 content-start">
-          <Link to="/student/schedule" className="block w-full h-full">
+          <Link to="/me/schedule" className="block w-full h-full">
           <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
@@ -96,7 +99,7 @@ function StudentDash() {
             </div>
           </div>
           </Link>
-          <Link to="/student/data" className="block w-full h-full">
+          <Link to="/me/data" className="block w-full h-full">
           <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
@@ -105,7 +108,7 @@ function StudentDash() {
             </div>
           </div>
           </Link>
-          <Link to="/student/news" className="block w-full h-full">
+          <Link to="/me/news" className="block w-full h-full">
           <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
@@ -114,7 +117,7 @@ function StudentDash() {
             </div>
           </div>
           </Link>
-          <Link to="/student/help" className="block w-full h-full">
+          <Link to="/me/help" className="block w-full h-full">
           <div id="card" className="ww-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
             <div className="p-4">
@@ -137,7 +140,7 @@ function StudentDash() {
           {/* ยังไม่ได้กำหนดว่านักเรียนคนไหนอยู่ห้องไหน */}
           <p className="text-2xl font-bold">{user.username}</p>
           <div className="flex flex-row gap-15">
-          <p>ชั้น:</p>
+          <p>ชั้น: {studentClasses[0]?.className || 'ไม่พบข้อมูล'}</p>
           <p>อายุ: {age} ปี</p>
           </div>
           {/* เดี๋ยวเอามาใส่ */}

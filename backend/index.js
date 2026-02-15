@@ -160,7 +160,7 @@ app.post('/api/login', async (req, res) => {
 })
 
 //  single teacher by ID
-app.get('/api/teachers/:id', async (req, res) => {
+app.get('/api/teachers/:id', requireAuth, async (req, res) => {
     try {
       const [rows] = await pool.query(
         "SELECT teacherID, first_name, last_name, gender, dob, tel, email, department, status FROM Teacher WHERE teacherID = ?",
@@ -178,34 +178,60 @@ app.get('/api/teachers/:id', async (req, res) => {
     }
   });
 
-  // Get single student by ID
-app.get('/api/students/:id', async (req, res) => {
+// get self student profile
+app.get('/api/me/student', requireAuth, requireStudent, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT studentID, first_name, last_name, gender, dob, tel, address, status FROM Student WHERE studentID = ?",
-      [req.params.id]
-    );
+
+    const userID = req.user.userID;
+
+    const [rows] = await pool.query(`
+      SELECT 
+        s.studentID,
+        s.first_name,
+        s.last_name,
+        s.gender,
+        s.dob,
+        s.tel,
+        s.address,
+        s.status
+      FROM User u
+      JOIN Student s
+      ON u.refID = s.studentID
+      WHERE u.userID = ?
+    `, [userID]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'ไม่พบนักเรียน' });
+      return res.status(404).json({ success: false });
     }
 
     res.json({ success: true, data: rows[0] });
+
   } catch (e) {
     console.error(e);
-    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง'});
   }
 });
 
 
-app.get('/api/students/:id/classes', async (req, res) => {
+app.get('/api/me/student/classes', requireAuth, requireStudent, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT * FROM StudentClass sc 
-       WHERE sc.studentID = ?`,
-      [req.params.id]
-    );
+
+    const userID = req.user.userID;
+
+    const [rows] = await pool.query(`
+      SELECT 
+        sc.classID,
+        c.className
+      FROM User u
+      JOIN StudentClass sc
+      ON u.refID = sc.studentID
+      JOIN Classroom c
+      ON sc.classID = c.classID
+      WHERE u.userID = ?
+    `, [userID]);
+
     res.json({ success: true, data: rows });
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
@@ -218,6 +244,7 @@ function requireAuth(req, res, next) {
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'ไม่ได้รับอนุญาต' });
   }
+
   try {
     const token = authHeader.split(' ')[1];
     req.user = jwt.verify(token, process.env.JWT_SECRET);
@@ -225,6 +252,13 @@ function requireAuth(req, res, next) {
   } catch (e) {
     return res.status(401).json({ success: false, message: 'โทเคนไม่ถูกต้อง' });
   }
+}
+
+function requireStudent(req, res, next) {
+  if (req.user.role !== 'STUDENT') {
+    return res.status(403).json({ success: false, message: 'สำหรับนักเรียนเท่านั้น' });
+  }
+  next();
 }
 
 // ADMIN ONLY MIDDLEWARE

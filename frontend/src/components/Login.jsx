@@ -32,7 +32,7 @@ function Login() {
       if (data.user.role === "TEACHER") {
         navigate("/teacher");
       } else if (data.user.role === "STUDENT") {
-        navigate("/student");
+        navigate("/me/student");
       } else if (data.user.role === "ADMIN") {
         navigate("/admin");
       }

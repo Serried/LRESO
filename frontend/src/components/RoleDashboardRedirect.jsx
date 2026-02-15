@@ -16,7 +16,7 @@ function RoleDashboardRedirect() {
     case 'TEACHER':
       return <Navigate to="/teacher" replace />;
     case 'STUDENT':
-      return <Navigate to="/student" replace />;
+      return <Navigate to="/me/student" replace />;
     case 'ADMIN':
       return <Navigate to="/admin" replace />;
     default:
