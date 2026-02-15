@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import NavBar from "./NavBar";
+import { Link } from 'react-router-dom';
 
 const API_BASE = "http://localhost:3000";
 
@@ -86,6 +87,7 @@ function StudentDash() {
           </p>
         </div>
         <div id="middle" className="grid grid-cols-2 gap-10 justify-center items-center">
+          <Link to="/student/schedule">
           <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
             <div className="p-4">
@@ -93,6 +95,8 @@ function StudentDash() {
               <p className="text-md mb-10">ตรวจสอบตารางเรียนส่วนบุคคล</p>
             </div>
           </div>
+          </Link>
+          <Link to="/student/data">
           <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
             <div className="p-4">
@@ -100,6 +104,8 @@ function StudentDash() {
               <p className="text-md mb-10">ตรวจสอบข้อมูลส่วนบุคคล</p>
             </div>
           </div>
+          </Link>
+          <Link to="/student/news">
           <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
             <div className="p-4">
@@ -107,6 +113,8 @@ function StudentDash() {
               <p className="text-md mb-10">ติดตามข่าวสาร / ประชาสัมพันธ์</p>
             </div>
           </div>
+          </Link>
+          <Link to="/student/help">
           <div id="card" className="w-100 overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
             <img src="https://placehold.co/600x400" alt="" className="w-full h-50 object-cover object-top block" />
             <div className="p-4">
@@ -114,6 +122,7 @@ function StudentDash() {
               <p className="text-md mb-10">ติดต่อฝ่ายทะเบียน</p>
             </div>
           </div>
+          </Link>
         </div>
         <div id="right" className="flex flex-col justify-center items-center">
           <img src={avatarUrl} alt="" className="rounded-full w-3xs" />
@@ -130,9 +139,11 @@ function StudentDash() {
           {/* เดี๋ยวเอามาใส่ */}
           <p>แผนการเรียน: </p>
           <p>สถานภาพนักเรียน: {student.status == "STUDYING" ? "เรียน" : "พ้นสภาพ"}</p>
+          <Link to="/bug-report">
           <button type="submit" className="btn w-full text-white bg-[#FF842C] border-none">
             แจ้งปัญหา
           </button>
+          </Link>
         </div>
       </div>
     </>

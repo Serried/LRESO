@@ -5,31 +5,43 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Login from './components/Login.jsx'
 import AdminDash from './components/AdminDash.jsx'
 import RoleDashboardRedirect from './components/RoleDashboardRedirect.jsx'
+import S_ContactStaff from './components/S_ContactStaff.jsx'
+import S_Schedule from './components/S_Schedule.jsx'
+import S_News from './components/S_News.jsx'
+import S_Kormoon from './components/S_Kormoon.jsx'
+import BugReport from './components/BugReport.jsx'
 
 function App() {
 
   return (
     <>
-      <Routes>
-        <Route path="/" element={<RoleDashboardRedirect />} />
-        <Route path="/login" element={<Login />}></Route>
-        <Route path="/teacher" element={
-          <ProtectedRoute>
-          <TeacherDash />
-          </ProtectedRoute>
-          }></Route>
-        <Route path="/student" element={
-          <ProtectedRoute>
-          <StudentDash />
-          </ProtectedRoute>
-          }></Route>
-    // AdminDash
-    <Route path="/admin" element= {
-          <ProtectedRoute allowedRole={['ADMIN']}>
-          <AdminDash />
-          </ProtectedRoute>
-    } ></Route>
-    </Routes>
+<Routes>
+
+  <Route path="/" element={<RoleDashboardRedirect />} />
+  <Route path="/login" element={<Login />} />
+  <Route path='/bug-report' element={<BugReport />}></Route>
+
+  {/* login */}
+  <Route element={<ProtectedRoute />}>
+
+    <Route path="/teacher" element={<TeacherDash />} />
+    <Route path="/student" element={<StudentDash />} />
+
+    {/* student */}
+    <Route path="/student/data" element={<S_Kormoon />} />
+    <Route path="/student/news" element={<S_News />} />
+    <Route path="/student/schedule" element={<S_Schedule />} />
+    <Route path="/student/help" element={<S_ContactStaff />} />
+
+  </Route>
+
+  {/* admin */}
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/admin" element={<AdminDash />} />
+  </Route>
+
+</Routes>
+
     </>
   )
 }
