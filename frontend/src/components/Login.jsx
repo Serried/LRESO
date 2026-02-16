@@ -11,19 +11,31 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [currentBackground, setCurrentBackground] = useState(`${RandomBackgroundImg(1, 18)}`);
   const navigate = useNavigate();
+  const [bg1, setBg1] = useState(RandomBackgroundImg(1,18));
+const [bg2, setBg2] = useState(RandomBackgroundImg(1,18));
+const [showSecond, setShowSecond] = useState(false);
 
-  useEffect(() => {
-    const changeBg = () => {
-      setCurrentBackground(RandomBackgroundImg(1, 18));
-    };
-    
-    const interval = setInterval(changeBg, 25000); // 25 sec
-    console.log(currentBackground);
+useEffect(() => {
+  const interval = setInterval(() => {
 
-    return () => clearInterval(interval); 
-  }, []);
+    const next = RandomBackgroundImg(1,18);
+
+    if (showSecond) {
+      setBg1(next);
+    } else {
+      setBg2(next);
+    }
+
+    setShowSecond(prev => !prev);
+
+  }, 25000); // 25 sec
+
+  return () => clearInterval(interval);
+}, [showSecond]);
+
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,7 +64,7 @@ function Login() {
       } else if (data.user.role === "STUDENT") {
         navigate("/me/student");
       } else if (data.user.role === "ADMIN") {
-        navigate("/admin");
+        navigate("/me/admin");
       }
     } catch (e) {
       setError(e.message);
@@ -62,15 +74,32 @@ function Login() {
   return (
     <>
       <div className="relative min-h-screen overflow-hidden flex items-center justify-center">
-        <div
-          className="absolute inset-0 bg-no-repeat animate-bg-float"
-          style={{
-            backgroundImage: `url("login-background/${currentBackground}.jpg")`,
-            backgroundSize: "120% auto",
-            backgroundPosition: "0% center",
-          }}
-          aria-hidden="true"
-        />
+      <div className="absolute inset-0 overflow-hidden -z-10" aria-hidden="true">
+  
+  {/* Bottom layer */}
+  <div
+    className="absolute inset-0 bg-no-repeat animate-bg-float"
+    style={{
+      backgroundImage: `url("login-background/${bg1}.jpg")`,
+      backgroundSize: "120% auto",
+      backgroundPosition: "0% center",
+    }}
+  />
+
+  {/* Top layer (this one fades) */}
+  <div
+    className={`absolute inset-0 bg-no-repeat animate-bg-float transition-opacity duration-1000 ease-in-out ${
+      showSecond ? "opacity-100" : "opacity-0"
+    }`}
+    style={{
+      backgroundImage: `url("login-background/${bg2}.jpg")`,
+      backgroundSize: "120% auto",
+      backgroundPosition: "0% center",
+    }}
+  />
+
+</div>
+
         <div className="absolute inset-0 bg-black/75" aria-hidden="true" />
         <div id="container" className="relative z-10 flex flex-row gap-5">
           <div
