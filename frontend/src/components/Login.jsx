@@ -1,11 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
+function RandomBackgroundImg(min, max) {
+  const minCeiled = Math.ceil(min);
+  const maxFloored = Math.floor(max);
+  return Math.floor(Math.random() * (maxFloored - minCeiled + 1)) + minCeiled; 
+}
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [currentBackground, setCurrentBackground] = useState(`${RandomBackgroundImg(1, 18)}`);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const changeBg = () => {
+      setCurrentBackground(RandomBackgroundImg(1, 18));
+    };
+    
+    const interval = setInterval(changeBg, 25000); // 25 sec
+    console.log(currentBackground);
+
+    return () => clearInterval(interval); 
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +65,7 @@ function Login() {
         <div
           className="absolute inset-0 bg-no-repeat animate-bg-float"
           style={{
-            backgroundImage: "url('/kmitl.png')",
+            backgroundImage: `url("login-background/${currentBackground}.jpg")`,
             backgroundSize: "120% auto",
             backgroundPosition: "0% center",
           }}
