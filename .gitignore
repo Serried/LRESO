@@ -28,3 +28,4 @@ dist-ssr
 # SQLite database (local)
 # backend/lreso.db
 # backend/uploads/
+*.env
