@@ -14,11 +14,11 @@ function RoleDashboardRedirect() {
 
   switch (user.role) {
     case 'TEACHER':
-      return <Navigate to="/teacher" replace />;
+      return <Navigate to="/me/teacher" replace />;
     case 'STUDENT':
       return <Navigate to="/me/student" replace />;
     case 'ADMIN':
-      return <Navigate to="/admin" replace />;
+      return <Navigate to="/me/admin" replace />;
     default:
       return <Navigate to="/login" replace />;
   }

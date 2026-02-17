@@ -10,6 +10,11 @@ import S_Schedule from './components/S_Schedule.jsx'
 import S_News from './components/S_News.jsx'
 import S_Kormoon from './components/S_Kormoon.jsx'
 import BugReport from './components/BugReport.jsx'
+import A_AddTeacher from './components/A_AddTeacher.jsx'
+import A_AddStudent from './components/A_AddStudent.jsx'
+import A_ManageNews from './components/A_ManageNews.jsx'
+import A_ManageReport from './components/A_ManageReport.jsx'
+import A_ManageSubject from './components/A_ManageSubject.jsx'
 
 function App() {
 
@@ -37,9 +42,23 @@ function App() {
 
   {/* admin */}
   <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
-    <Route path="/admin" element={<AdminDash />} />
+    <Route path="/me/admin" element={<AdminDash />} />
   </Route>
-
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/me/manage-subject" element={<A_ManageSubject />} />
+  </Route>
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/me/manage-news" element={<A_ManageNews />} />
+  </Route>
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/me/add-student" element={<A_AddStudent />} />
+  </Route>
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/me/add-teacher" element={<A_AddTeacher />} />
+  </Route>
+  <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
+    <Route path="/me/manage-reports" element={<A_ManageReport />} />
+  </Route>
 </Routes>
 
     </>

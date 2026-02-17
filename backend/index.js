@@ -212,6 +212,26 @@ app.get('/api/me/student', requireAuth, requireStudent, async (req, res) => {
   }
 });
 
+app.get('/api/me/admin', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    const [rows] = await pool.query(
+      'SELECT userID, username, role, avatar, status FROM User WHERE userID = ?',
+      [userID]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false });
+    }
+
+    res.json({ success: true, data: rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง'});
+  }
+});
+
 
 app.get('/api/me/student/classes', requireAuth, requireStudent, async (req, res) => {
   try {
@@ -281,7 +301,7 @@ function requireAdmin(req, res, next) {
 
 // ================================================= เริ่มงงละอะไรเยอะแยะวะ
 // (Admin) create teacher endpoint
-app.post('/api/admin/teachers', requireAdmin, upload.single('avatar'), async (req, res) => {
+app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
       const { first_name, last_name, gender, dob, tel, email, department } = req.body;
   
@@ -316,7 +336,7 @@ app.post('/api/admin/teachers', requireAdmin, upload.single('avatar'), async (re
   });
 
   // (Admin) create student endpoint
-app.post('/api/admin/students', requireAdmin, upload.single('avatar'), async (req, res) => {
+app.post('/api/admin/students', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
         const { first_name, last_name, gender, dob, tel, adress } = req.body;
         

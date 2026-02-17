@@ -1,6 +1,6 @@
 import React from 'react'
 
-function A_Kormoon() {
+function S_Kormoon() {
   return (
     <>
     ข้อมูลส่วนบุคคล
@@ -8,4 +8,4 @@ function A_Kormoon() {
   )
 }
 
-export default A_Kormoon
+export default S_Kormoon

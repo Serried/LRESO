@@ -1,6 +1,6 @@
 import React from 'react'
 
-function A_News() {
+function S_News() {
   return (
     <>
     ข่าวสาร/ประชาสัมพันธ์
@@ -9,4 +9,4 @@ function A_News() {
   )
 }
 
-export default A_News
+export default S_News
