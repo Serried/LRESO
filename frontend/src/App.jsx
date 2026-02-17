@@ -15,6 +15,11 @@ import A_AddStudent from './components/A_AddStudent.jsx'
 import A_ManageNews from './components/A_ManageNews.jsx'
 import A_ManageReport from './components/A_ManageReport.jsx'
 import A_ManageSubject from './components/A_ManageSubject.jsx'
+import T_Kormoon from './components/T_Kormoon.jsx'
+import T_ManageScore from './components/T_ManageScore.jsx'
+import T_News from './components/T_News.jsx'
+import T_Schedule from './components/T_Schedule.jsx'
+import RoleBasedRoute from './components/RoleBasedRoute.jsx'
 
 function App() {
 
@@ -26,18 +31,25 @@ function App() {
   <Route path="/login" element={<Login />} />
   <Route path='/bug-report' element={<BugReport />}></Route>
 
-  {/* login */}
+  {/* eacher & student dashboard */}
   <Route element={<ProtectedRoute />}>
-
-    <Route path="/teacher" element={<TeacherDash />} />
+    <Route path="/me/teacher" element={<TeacherDash />} />
     <Route path="/me/student" element={<StudentDash />} />
 
-    {/* student */}
-    <Route path="/me/data" element={<S_Kormoon />} />
-    <Route path="/me/news" element={<S_News />} />
-    <Route path="/me/schedule" element={<S_Schedule />} />
-    <Route path="/me/help" element={<S_ContactStaff />} />
+    {/* role-based (teacher vs student) */}
+    <Route path="/me/data" element={<RoleBasedRoute teacherComponent={<T_Kormoon />} studentComponent={<S_Kormoon />} />} />
+    <Route path="/me/news" element={<RoleBasedRoute teacherComponent={<T_News />} studentComponent={<S_News />} />} />
+    <Route path="/me/schedule" element={<RoleBasedRoute teacherComponent={<T_Schedule />} studentComponent={<S_Schedule />} />} />
 
+    {/* student-only */}
+    <Route element={<ProtectedRoute allowedRole={['STUDENT']} />}>
+      <Route path="/me/help" element={<S_ContactStaff />} />
+    </Route>
+  </Route>
+
+  {/* teacher-only */}
+  <Route element={<ProtectedRoute allowedRole={['TEACHER']} />}>
+    <Route path="/me/manage-score" element={<T_ManageScore />} />
   </Route>
 
   {/* admin */}
