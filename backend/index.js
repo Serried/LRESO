@@ -159,24 +159,36 @@ app.post('/api/login', async (req, res) => {
     }
 })
 
-//  single teacher by ID
-app.get('/api/teachers/:id', requireAuth, async (req, res) => {
-    try {
-      const [rows] = await pool.query(
-        "SELECT teacherID, first_name, last_name, gender, dob, tel, email, department, status FROM Teacher WHERE teacherID = ?",
-        [req.params.id]
-      );
-  
-      if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'ไม่พบครูผู้สอน' });
-      }
-  
-      res.json({ success: true, data: rows[0] });
-    } catch (e) {
-      console.error(e);
-      res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
+// get self teacher profile
+app.get('/api/me/teacher', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        t.teacherID,
+        t.first_name,
+        t.last_name,
+        t.gender,
+        t.dob,
+        t.tel,
+        t.email,
+        t.department,
+        t.status,
+        u.avatar
+      FROM User u
+      JOIN Teacher t ON u.refID = t.teacherID
+      WHERE u.userID = ?
+    `, [req.user.userID]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบครูผู้สอน' });
     }
-  });
+
+    res.json({ success: true, data: rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
+  }
+});
 
 // get self student profile
 app.get('/api/me/student', requireAuth, requireStudent, async (req, res) => {
@@ -277,6 +289,13 @@ function requireAuth(req, res, next) {
 function requireStudent(req, res, next) {
   if (req.user.role !== 'STUDENT') {
     return res.status(403).json({ success: false, message: 'สำหรับนักเรียนเท่านั้น' });
+  }
+  next();
+}
+
+function requireTeacher(req, res, next) {
+  if (req.user.role !== 'TEACHER') {
+    return res.status(403).json({ success: false, message: 'สำหรับนักครูผู้สอนเท่านั้น' });
   }
   next();
 }

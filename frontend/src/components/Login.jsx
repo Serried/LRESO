@@ -60,7 +60,7 @@ useEffect(() => {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       if (data.user.role === "TEACHER") {
-        navigate("/teacher");
+        navigate("/me/teacher");
       } else if (data.user.role === "STUDENT") {
         navigate("/me/student");
       } else if (data.user.role === "ADMIN") {
