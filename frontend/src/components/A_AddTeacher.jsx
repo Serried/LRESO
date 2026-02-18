@@ -13,12 +13,76 @@ function A_AddTeacher() {
   const [gender, setGender] = useState('M');
   const [department, setDepartment] = useState('');
   const [groupNames, setGroupNames] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [editForm, setEditForm] = useState(null);
   const [birthDate, setBirthDate] = useState(null);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState("/avatar-placeholder.jpg");
   const [errorMessage, setErrorMessage] = useState({ text: '', isError: false });
+
+  const openEditModal = (t) => {
+    setSelectedTeacher(t);
+    setEditForm({
+      ...t,
+      dob: t.dob ? String(t.dob).split('T')[0] : ''
+    });
+  };
+
+  const closeEditModal = () => {
+    setSelectedTeacher(null);
+    setEditForm(null);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm || !selectedTeacher) return;
+    setErrorMessage({ text: '', isError: false });
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/admin/teachers/${selectedTeacher.teacherID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          thai_first_name: editForm.thai_first_name || null,
+          thai_last_name: editForm.thai_last_name || null,
+          gender: editForm.gender || null,
+          dob: editForm.dob || null,
+          tel: editForm.tel || null,
+          email: editForm.email || null,
+          department: editForm.department || null,
+          status: editForm.status || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage({ text: data.message || 'เกิดข้อผิดพลาด', isError: true });
+        return;
+      }
+      setErrorMessage({ text: data.message || 'อัปเดตสำเร็จ', isError: false });
+      fetchTeachers();
+      closeEditModal();
+    } catch (err) {
+      console.error(err);
+      setErrorMessage({ text: 'เกิดข้อผิดพลาด', isError: true });
+    }
+  };
+
+  const fetchTeachers = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(`${API_BASE}/api/admin/get-teachers`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(result => { if (result.success && Array.isArray(result.data)) setTeachers(result.data); })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -31,6 +95,8 @@ function A_AddTeacher() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => { fetchTeachers(); }, []);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -234,7 +300,7 @@ function A_AddTeacher() {
 
             </div>
 
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-8 p-5">
               <button
                 type="submit"
                 className="bg-orange-500 text-white px-10 py-3 text-lg rounded hover:bg-orange-600"
@@ -247,6 +313,119 @@ function A_AddTeacher() {
 
         </div>
       </div>
+      <div className='divider'></div>
+      <div className='m-15'>
+        <h1 className='text-2xl font-bold mb-5'>ข้อมูลครูผู้สอนทั้งหมด</h1>
+        <div className="border border-[#ddd] rounded-lg overflow-hidden shadow">
+          <table className="w-full">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="text-left p-3 border-b">ลำดับที่</th>
+                <th className="text-left p-3 border-b">ชื่อ-นามสกุล</th>
+                <th className="text-left p-3 border-b">เพศ</th>
+                <th className="text-left p-3 border-b">แผนก</th>
+                <th className="text-left p-3 border-b">อีเมล</th>
+                <th className="text-left p-3 border-b">เบอร์โทร</th>
+                <th className="text-left p-3 border-b">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teachers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-gray-500 border-b">
+                    ไม่พบข้อมูลครูผู้สอน
+                  </td>
+                </tr>
+              ) : (
+                teachers.map((t, i) => (
+                  <tr
+                    key={t.teacherID}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => openEditModal(t)}
+                  >
+                    <td className="p-3">{i + 1}</td>
+                    <td className="p-3">
+                      {(t.thai_first_name || t.thai_last_name)
+                        ? `${t.thai_first_name || ''} ${t.thai_last_name || ''}`.trim()
+                        : 'ไม่มีข้อมูล'}
+                    </td>
+                    <td className="p-3">{t.gender === 'M' ? 'ชาย' : t.gender === 'F' ? 'หญิง' : t.gender || 'ไม่มีข้อมูล'}</td>
+                    <td className="p-3">{t.department || 'ไม่มีข้อมูล'}</td>
+                    <td className="p-3">{t.email || 'ไม่มีข้อมูล'}</td>
+                    <td className="p-3">{t.tel || 'ไม่มีข้อมูล'}</td>
+                    <td className="p-3">{t.status === 'ACTIVE' ? 'ปฏิบัติงาน' : t.status === 'RESIGNED' ? 'ลาออก' : t.status || '-' || 'ไม่มีข้อมูล'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* modal แก้ข้อมูลครู */}
+      {editForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeEditModal}>
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลครู</h2>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย)</label>
+                  <div className="flex gap-2">
+                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="ชื่อ" value={editForm.thai_first_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_first_name: e.target.value }))} />
+                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="นามสกุล" value={editForm.thai_last_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_last_name: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (English)</label>
+                  <div className="flex gap-2">
+                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="First name" value={editForm.first_name || ''} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
+                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="Last name" value={editForm.last_name || ''} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เพศ</label>
+                  <select className="border px-3 py-2 w-full rounded" value={editForm.gender || ''} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
+                    <option value="">-- เลือก --</option>
+                    <option value="M">ชาย</option>
+                    <option value="F">หญิง</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด</label>
+                  <input type="date" className="border px-3 py-2 w-full rounded" value={editForm.dob || ''} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
+                  <input type="tel" className="border px-3 py-2 w-full rounded" value={editForm.tel || ''} onChange={e => setEditForm(f => ({ ...f, tel: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                  <input type="email" className="border px-3 py-2 w-full rounded" value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+                  <select className="border px-3 py-2 w-full rounded" value={editForm.department || ''} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
+                    <option value="">-- เลือก --</option>
+                    {groupNames.map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                  <select className="border px-3 py-2 w-full rounded" value={editForm.status || ''} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                    <option value="ACTIVE">ปฏิบัติงาน</option>
+                    <option value="RESIGNED">ลาออก</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">บันทึก</button>
+                  <button type="button" className="px-4 py-2 border rounded hover:bg-gray-100" onClick={closeEditModal}>ยกเลิก</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

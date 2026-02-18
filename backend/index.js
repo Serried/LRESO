@@ -427,9 +427,55 @@ app.post('/api/users/me/avatar', requireAuth, upload.single('avatar'), async (re
     const userId = req.user.userID;
     const avatarPath = `avatars/${req.file.filename}`;
 
-    await pool.query('UPDATE User SET avatar = ? WHERE userID = ?', [avatarPath, userId]);
+    const [rows] = await pool.query('UPDATE User SET avatar = ? WHERE userID = ?', [avatarPath, userId]);
 
     res.json({ success: true, avatar: avatarPath });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.get('/api/admin/get-teachers', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM Teacher');
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// (Admin) update ข้อมูลครู
+app.put('/api/admin/teachers/:id', requireAuth, requireAdmin, express.json(), async (req, res) => {
+  try {
+    const teacherID = parseInt(req.params.id, 10);
+    if (isNaN(teacherID)) {
+      return res.status(400).json({ success: false, message: 'Invalid teacher ID' });
+    }
+    const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department, status } = req.body;
+    await pool.query(
+      `UPDATE Teacher SET
+        first_name = ?, last_name = ?, thai_first_name = ?, thai_last_name = ?,
+        gender = ?, dob = ?, tel = ?, email = ?, department = ?, status = ?
+      WHERE teacherID = ?`,
+      [
+        first_name ?? null, last_name ?? null, thai_first_name ?? null, thai_last_name ?? null,
+        gender ?? null, dob ?? null, tel ?? null, email ?? null, department ?? null, status ?? null,
+        teacherID
+      ]
+    );
+    // ถ้าชื่อจริงนามสกุลภาษาอังกฤษ โดนเปลี่ยน username ก็จะเปลี่ยนด้วย
+    const first = (first_name && typeof first_name === 'string') ? first_name.trim().toLowerCase() : '';
+    const lastInitial = (last_name && typeof last_name === 'string') ? last_name.trim().toLowerCase().substring(0, 1) : '';
+    if (first && lastInitial) {
+      const newUsername = `${first}.${lastInitial}`;
+      await pool.query(
+        "UPDATE User SET username = ? WHERE refID = ? AND role = 'TEACHER'",
+        [newUsername, teacherID]
+      );
+    }
+    res.json({ success: true, message: 'อัปเดตข้อมูลครูสำเร็จ' });
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: e.message });
