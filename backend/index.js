@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const pool = require('./db');
 const db = require('./db').raw;
+const { parse } = require('csv-parse/sync');
 // idempotent (ชั่วคราว ๆ)
 // try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_first_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
 // try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_last_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
@@ -38,6 +39,23 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     if (/image\/(jpeg|jpg|png|gif|webp)/.test(file.mimetype)) cb(null, true);
     else cb(new Error('Only images (jpeg, png, gif, webp) allowed'));
+  }
+});
+
+// multer for CSV uploads (ไม่มี image filter)
+const csvUploadDir = path.join(__dirname, 'uploads', 'csv');
+if (!fs.existsSync(csvUploadDir)) fs.mkdirSync(csvUploadDir, { recursive: true });
+const uploadCsv = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, csvUploadDir),
+    filename: (req, file, cb) => cb(null, `csv-${Date.now()}.csv`)
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 mb
+  fileFilter: (req, file, cb) => {
+    // เช็ค mime type กับ file format ว่าต้องเป็น .csv เท่านั้น
+    const ok = /^text\/(csv|plain)$|application\/csv/.test(file.mimetype) || /\.csv$/i.test(file.originalname);
+    if (ok) cb(null, true);
+    else cb(new Error('Only CSV files allowed'));
   }
 });
 
@@ -383,6 +401,74 @@ app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar
       res.status(500).json({ success: false, message: e.message });
     }
   });
+
+app.post('/api/admin/teachers/csv', requireAuth, requireAdmin, uploadCsv.single('csv'), async (req, res) => {
+  try {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "กรุณาอัปโหลดไฟล์ค่าที่คั่นด้วยจุลภาค" });
+  }
+  
+  const csv = fs.readFileSync(req.file.path, 'utf8');
+
+  const records = parse(csv, {
+    columns: true,
+    skip_empty_lines: true,
+    bom: true
+  })
+
+  let created = [];
+
+  for (const row of records) {
+    const {
+      first_name,
+      last_name,
+      thai_first_name,
+      thai_last_name,
+      gender,
+      dob,
+      tel,
+      email,
+      department
+    } = row;
+
+    if (!first_name || !last_name || !email) continue;
+
+    const password = generatePassword();
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const [teacherResult] = await pool.query(
+      'INSERT INTO Teacher (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        first_name,
+        last_name,
+        thai_first_name || null,
+        thai_last_name || null,
+        gender || null,
+        dob || null,
+        tel || null,
+        email,
+        department || null,
+        'ACTIVE'
+      ]
+    );
+
+    const teacherID = teacherResult.insertId;
+    const username = `${String(first_name).trim().toLowerCase()}.${String(last_name).trim().toLowerCase()[0]}`;
+    await pool.query(
+      'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+      [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', 'avatars/avatar-placeholder.jpg']
+    );
+
+    created.push({ username, password });
+  }
+
+  res.json({ success: true, message: `สร้างบัญชีครูผู้สอนสำเร็จจำนวน ${created.length} บัญชี`, account: created });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 
   // (Admin) create student endpoint
 app.post('/api/admin/students', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {

@@ -22,6 +22,7 @@ function A_AddTeacher() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState("/avatar-placeholder.jpg");
   const [errorMessage, setErrorMessage] = useState({ text: '', isError: false });
+  const [csvSuccessAccounts, setCsvSuccessAccounts] = useState(null);
 
   const openEditModal = (t) => {
     setSelectedTeacher(t);
@@ -35,6 +36,57 @@ function A_AddTeacher() {
     setSelectedTeacher(null);
     setEditForm(null);
   };
+
+  const handleCSV = async (e) => {
+    
+    const file = e.target.files[0];
+    if(!file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('csv', file);
+
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/admin/teachers/csv`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.account) && data.account.length > 0) {
+        setCsvSuccessAccounts(data.account);
+        fetchTeachers();
+      } else if (!res.ok) {
+        setErrorMessage({ text: data.message || 'เกิดข้อผิดพลาด', isError: true });
+      } else {
+        setErrorMessage({ text: data.message || 'อัปโหลดสำเร็จ (ไม่มีบัญชีใหม่)', isError: false });
+      }
+    } catch (e) {
+      console.error(e);
+      setErrorMessage({ text: 'เกิดข้อผิดพลาด', isError: true });
+    }
+    e.target.value = '';
+  };
+
+  const downloadCsvAccounts = () => {
+    if (!csvSuccessAccounts || csvSuccessAccounts.length === 0) return;
+    const escape = (s) => (s == null ? '' : `"${String(s).replace(/"/g, '""')}"`);
+    const header = 'username,password\n';
+    const rows = csvSuccessAccounts.map((a) => `${escape(a.username)},${escape(a.password)}`).join('\n');
+    const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `teacher-accounts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -306,7 +358,14 @@ function A_AddTeacher() {
                 className="bg-orange-500 text-white px-10 py-3 text-lg rounded hover:bg-orange-600"
               >
                 เพิ่มบัญชีครูผู้สอน
-              </button>
+              </button >
+              {/* ทำไมไม่ขึ้นไม่รู้ */}
+              <div className='divider lg:divider-horizontal'>หรือ</div>
+              <label className='bg-orange-500 text-white px-10 py-3 text-lg rounded hover:bg-orange-600 cursor-pointer inline-block'>
+                อัพโหลดไฟล์ค่าที่คั่นด้วยจุลภาค
+                <input type='file' id='csv-upload' accept='.csv' className='hidden' onChange={handleCSV} />
+              </label>
+        
             </div>
 
           </form>
@@ -364,11 +423,10 @@ function A_AddTeacher() {
 
       {/* modal แก้ข้อมูลครู */}
       {editForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeEditModal}>
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลครู</h2>
-              <form onSubmit={handleEditSubmit} className="space-y-4">
+        <div className="modal modal-open">
+          <div className="modal-box max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลครู</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย)</label>
                   <div className="flex gap-2">
@@ -417,13 +475,50 @@ function A_AddTeacher() {
                     <option value="RESIGNED">ลาออก</option>
                   </select>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">บันทึก</button>
-                  <button type="button" className="px-4 py-2 border rounded hover:bg-gray-100" onClick={closeEditModal}>ยกเลิก</button>
+                <div className="modal-action">
+                  <button type="submit" className="btn bg-orange-500 text-white border-none hover:bg-orange-600">บันทึก</button>
+                  <button type="button" className="btn btn-ghost" onClick={closeEditModal}>ยกเลิก</button>
                 </div>
               </form>
+          </div>
+          <div className="modal-backdrop" onClick={closeEditModal} aria-hidden />
+        </div>
+      )}
+
+      {/* ยืนยัน CSV */}
+      {csvSuccessAccounts && csvSuccessAccounts.length > 0 && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-success">อัปโหลดสำเร็จ</h2>
+            <p className="text-base-content/70 mt-1">สร้างบัญชีครูผู้สอนแล้ว {csvSuccessAccounts.length} บัญชี</p>
+            <div className="overflow-y-auto flex-1 my-4">
+              <table className="table table-sm">
+                <thead>
+                  <tr>
+                    <th>ชื่อผู้ใช้</th>
+                    <th>รหัสผ่าน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvSuccessAccounts.map((a, i) => (
+                    <tr key={i}>
+                      <td className="font-mono">{a.username}</td>
+                      <td className="font-mono">{a.password}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="modal-action">
+              <button type="button" className="btn bg-orange-500 text-white border-none hover:bg-orange-600" onClick={downloadCsvAccounts}>
+                ดาวน์โหลด
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setCsvSuccessAccounts(null)}>
+                ปิด
+              </button>
             </div>
           </div>
+          <div className="modal-backdrop" onClick={() => setCsvSuccessAccounts(null)} aria-hidden />
         </div>
       )}
     </>
