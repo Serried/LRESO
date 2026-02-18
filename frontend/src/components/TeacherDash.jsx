@@ -118,7 +118,9 @@ useEffect(() => {
           {teacher && (
             <p className="text-2xl font-bold mt-5">
               {teacher.gender == "M" ? "นาย" : "นางสาว"}
-              {teacher.first_name} {teacher.last_name}
+              {(teacher.thai_first_name || teacher.thai_last_name)
+                ? `${teacher.thai_first_name || ""} ${teacher.thai_last_name || ""}`.trim()
+                : `${teacher.first_name || ""} ${teacher.last_name || ""}`.trim()}
             </p>
           )}
           

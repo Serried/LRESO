@@ -10,9 +10,11 @@ function NavBar() {
     navigate("/login")
   }
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const displayName = user.first_name && user.last_name
-    ? `${user.first_name} ${user.last_name}`
-    : user.username || 'ผู้ใช้';
+  const displayName = (user.thai_first_name || user.thai_last_name)
+    ? `${user.thai_first_name || ''} ${user.thai_last_name || ''}`.trim()
+    : (user.first_name || user.last_name)
+      ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+      : user.username || 'ผู้ใช้';
   const avatarUrl = user.avatar
     ? `http://localhost:3000/uploads/${user.avatar}`
     : 'https://placehold.co/45';

@@ -12,10 +12,10 @@ function A_AddStudent() {
     });
     const [teacherMessage, setTeacherMessage] = useState({ text: '', isError: false });
   
-    // Student form
+    // Student form (Thai + English names)
     const [studentForm, setStudentForm] = useState({
-      first_name: '', last_name: '', gender: '', dob: '', tel: '', adress: '',
-      username: '', password: ''
+      first_name: '', last_name: '', thai_first_name: '', thai_last_name: '',
+      gender: '', dob: '', tel: '', adress: '', username: '', password: ''
     });
     const [studentMessage, setStudentMessage] = useState({ text: '', isError: false });
   
@@ -65,7 +65,7 @@ function A_AddStudent() {
         const data = await res.json();
         if (res.ok) {
           setStudentMessage({ text: data.message, isError: false });
-          setStudentForm({ first_name: '', last_name: '', gender: '', dob: '', tel: '', adress: '', username: '', password: '' });
+          setStudentForm({ first_name: '', last_name: '', thai_first_name: '', thai_last_name: '', gender: '', dob: '', tel: '', adress: '', username: '', password: '' });
           setGeneratedPassword(data.password || null);
         } else {
           setStudentMessage({ text: data.message || 'Failed', isError: true });
@@ -129,6 +129,10 @@ function A_AddStudent() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 text-sm font-medium text-gray-600">ชื่อ-นามสกุล (ไทย)</div>
+              <input type="text" placeholder="ชื่อ" value={studentForm.thai_first_name} onChange={e => setStudentForm(f => ({ ...f, thai_first_name: e.target.value }))} className="input input-bordered w-full" />
+              <input type="text" placeholder="นามสกุล" value={studentForm.thai_last_name} onChange={e => setStudentForm(f => ({ ...f, thai_last_name: e.target.value }))} className="input input-bordered w-full" />
+              <div className="col-span-2 text-sm font-medium text-gray-600 mt-2">ชื่อ-นามสกุล (English)</div>
               <input type="text" placeholder="First name" value={studentForm.first_name} onChange={e => setStudentForm(f => ({ ...f, first_name: e.target.value }))} className="input input-bordered w-full" required />
               <input type="text" placeholder="Last name" value={studentForm.last_name} onChange={e => setStudentForm(f => ({ ...f, last_name: e.target.value }))} className="input input-bordered w-full" required />
               <input type="text" placeholder="Gender (M, F)" value={studentForm.gender} onChange={e => setStudentForm(f => ({ ...f, gender: e.target.value }))} className="input input-bordered w-full" />

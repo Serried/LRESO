@@ -3,6 +3,12 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const pool = require('./db');
+const db = require('./db').raw;
+// idempotent (ชั่วคราว ๆ)
+// try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_first_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
+// try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_last_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
+// try { db.exec('ALTER TABLE Student ADD COLUMN thai_first_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
+// try { db.exec('ALTER TABLE Student ADD COLUMN thai_last_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -104,20 +110,24 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = rows[0];
-        let first_name = null, last_name = null;
+        let first_name = null, last_name = null, thai_first_name = null, thai_last_name = null;
 
         if (user.refID) {
           if (user.role === "TEACHER") {
-            const [data] = await pool.query("SELECT first_name, last_name FROM Teacher WHERE teacherID = ?", [user.refID]);
-            if (data.length) {
-              first_name = data[0].first_name
-              last_name = data[0].last_name
-            }
-          } else if (user.role === "STUDENT") {
-            const [data] = await pool.query("SELECT first_name, last_name FROM Student WHERE studentID = ?", [user.refID]);
+            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name FROM Teacher WHERE teacherID = ?", [user.refID]);
             if (data.length) {
               first_name = data[0].first_name;
               last_name = data[0].last_name;
+              thai_first_name = data[0].thai_first_name;
+              thai_last_name = data[0].thai_last_name;
+            }
+          } else if (user.role === "STUDENT") {
+            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name FROM Student WHERE studentID = ?", [user.refID]);
+            if (data.length) {
+              first_name = data[0].first_name;
+              last_name = data[0].last_name;
+              thai_first_name = data[0].thai_first_name;
+              thai_last_name = data[0].thai_last_name;
             }
           }
         }
@@ -150,7 +160,9 @@ app.post('/api/login', async (req, res) => {
                 refID: user.refID,
                 avatar: user.avatar,
                 first_name,
-                last_name
+                last_name,
+                thai_first_name,
+                thai_last_name
             }
         });
     } catch (e) {
@@ -167,6 +179,8 @@ app.get('/api/me/teacher', requireAuth, requireTeacher, async (req, res) => {
         t.teacherID,
         t.first_name,
         t.last_name,
+        t.thai_first_name,
+        t.thai_last_name,
         t.gender,
         t.dob,
         t.tel,
@@ -335,10 +349,10 @@ app.get('/api/subjects/group-names', requireAuth, async (req, res) => {
 // (Admin) create teacher endpoint
 app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
-      const { first_name, last_name, gender, dob, tel, email, department } = req.body;
+      const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department } = req.body;
   
       if (!first_name || !last_name || !email) {
-        return res.status(400).json({ success: false, message: 'Username, password, first name, last name, and email are required' });
+        return res.status(400).json({ success: false, message: 'English first name, last name, and email are required' });
       }
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'กรุณาอัพโหลดรูปโปรไฟล์' });
@@ -347,12 +361,15 @@ app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar
       const hashedPassword = await bcrypt.hash(password, 10);
   
       const [teacherResult] = await pool.query(
-        'INSERT INTO Teacher (first_name, last_name, gender, dob, tel, email, department, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [first_name, last_name, gender || null, dob || null, tel || null, email, department || null, 'ACTIVE']
+        'INSERT INTO Teacher (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [first_name, last_name, thai_first_name || null, thai_last_name || null, gender || null, dob || null, tel || null, email, department || null, 'ACTIVE']
       );
   
       const teacherID = teacherResult.insertId;
-      const username = `${first_name.toLowerCase()}.${last_name.toLowerCase().substring(0, 1)}`;
+      // Username: ชื่อจริงภาษาอังกฤษ.นามสกุลตัวแรกภาษาอังกฤษ
+      const first = first_name.trim().toLowerCase();
+      const lastInitial = last_name.trim().toLowerCase().substring(0, 1);
+      const username = `${first}.${lastInitial}`;
       const avatarPath = `avatars/${req.file.filename}`;
 
       await pool.query(
@@ -370,10 +387,10 @@ app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar
   // (Admin) create student endpoint
 app.post('/api/admin/students', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {
     try {
-        const { first_name, last_name, gender, dob, tel, adress } = req.body;
+        const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, adress } = req.body;
         
         if ( !first_name || !last_name) {
-            return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบทุกช่อง' });
+            return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อ-นามสกุล (English) ให้ครบ' });
         }
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'กรุณาอัพโหลดรูปโปรไฟล์' });
@@ -381,8 +398,8 @@ app.post('/api/admin/students', requireAuth, requireAdmin, upload.single('avatar
         const password = generatePassword();
         const hashedPassword = await bcrypt.hash(password, 10);
         const [studentResult] = await pool.query(
-            'INSERT INTO Student (first_name, last_name, gender, dob, tel, address, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [first_name, last_name, gender || null, dob || null, tel || null, adress || null, 'STUDYING']
+            'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [first_name, last_name, thai_first_name || null, thai_last_name || null, gender || null, dob || null, tel || null, adress || null, 'STUDYING']
         );
         
         const studentID = studentResult.insertId;

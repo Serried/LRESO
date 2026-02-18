@@ -8,6 +8,8 @@ function A_AddTeacher() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [thaiFirstName, setThaiFirstName] = useState('');
+  const [thaiLastName, setThaiLastName] = useState('');
   const [gender, setGender] = useState('M');
   const [department, setDepartment] = useState('');
   const [groupNames, setGroupNames] = useState([]);
@@ -16,6 +18,7 @@ function A_AddTeacher() {
   const [email, setEmail] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState("/avatar-placeholder.jpg");
+  const [errorMessage, setErrorMessage] = useState({ text: '', isError: false });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,19 +42,22 @@ function A_AddTeacher() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage({ text: '', isError: false });
 
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      alert('กรุณากรอกชื่อ นามสกุล และอีเมล');
+      setErrorMessage({ text: 'กรุณากรอกชื่อ-นามสกุล (English) และอีเมล', isError: true });
       return;
     }
     if (!avatarFile) {
-      alert('กรุณาอัพโหลดรูปโปรไฟล์');
+      setErrorMessage({ text: 'กรุณาอัพโหลดรูปโปรไฟล์', isError: true });
       return;
     }
 
     const formData = new FormData();
     formData.append('first_name', firstName.trim());
     formData.append('last_name', lastName.trim());
+    if (thaiFirstName.trim()) formData.append('thai_first_name', thaiFirstName.trim());
+    if (thaiLastName.trim()) formData.append('thai_last_name', thaiLastName.trim());
     formData.append('gender', gender);
     formData.append('tel', phone);
     formData.append('email', email.trim());
@@ -71,14 +77,14 @@ function A_AddTeacher() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "เกิดข้อผิดพลาด");
+        setErrorMessage({ text: data.message || "เกิดข้อผิดพลาด", isError: true });
         return;
       }
-      alert(data.message || "เพิ่มครูสำเร็จ!");
+      setErrorMessage({ text: data.message || "เพิ่มครูสำเร็จ!", isError: false });
       console.log(data);
     } catch (err) {
       console.error(err);
-      alert("เกิดข้อผิดพลาด");
+      setErrorMessage({ text: "เกิดข้อผิดพลาด", isError: true });
     }
   };
 
@@ -91,25 +97,45 @@ function A_AddTeacher() {
 
         <div className='border border-[#ddd] rounded-lg p-6 shadow'>
 
+          {errorMessage.text && (
+            <div className={`mb-4 p-3 rounded ${errorMessage.isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              {errorMessage.text}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
 
-            {/* ชื่อ-นามสกุล */}
+            {/* ชื่อ-นามสกุล (thai) */}
+            <div className="flex items-center gap-6 mb-4">
+              <span className="text-lg font-semibold w-32">ชื่อ-นามสกุล (ไทย)</span>
+              <input
+                value={thaiFirstName}
+                onChange={(e) => setThaiFirstName(e.target.value)}
+                className="border px-4 py-2 flex-1 shadow"
+                placeholder="ชื่อภาษาไทย"
+              />
+              <input
+                value={thaiLastName}
+                onChange={(e) => setThaiLastName(e.target.value)}
+                className="border px-4 py-2 flex-1 shadow"
+                placeholder="นามสกุลภาษาไทย"
+              />
+            </div>
+
+            {/* ชื่อ-นามสกุล (eng) */}
             <div className="flex items-center gap-6 mb-6">
-              <label className="text-lg font-semibold w-32">
-                ชื่อ
-              </label>
+              <span className="text-lg font-semibold w-32">ชื่อ-นามสกุล (อังกฤษ)</span>
               <input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="border px-4 py-2 flex-1 shadow"
-                placeholder="เช่น ธนกฤต"
+                placeholder='ชื่อภาษาอังกฤษ'
               />
-              <label className="text-lg font-semibold w-24">นามสกุล</label>
               <input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="border px-4 py-2 flex-1 shadow"
-                placeholder="เช่น อินทร์ฉ่ำ"
+                placeholder='นามสกุลภาษาอังกฤษ'
               />
             </div>
 
@@ -148,7 +174,7 @@ function A_AddTeacher() {
                     className="border px-4 py-2 w-40 shadow"
                   >
                     <option value='M'>ชาย</option>
-                    <option value='W'>หญิง</option>
+                    <option value='F'>หญิง</option>
                   </select>
                 </div>
 
