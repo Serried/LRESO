@@ -116,7 +116,7 @@ function AdminDash() {
 
         <div id="right" className="w-1/5 bg-white border border-[#ddd] rounded-xl flex flex-col items-center justify-start">
           <div className="mt-42">
-            <img src={avatarUrl} alt="" className="rounded-full w-20 h-20 object-cover" />
+            <img src={avatarUrl} alt="" className="rounded-full w-3xs" />
           </div>
           <p className="text-2xl font-bold mt-5">{admin.username}</p>
           <p className="text-gray-600">ผู้ดูแลระบบ</p>

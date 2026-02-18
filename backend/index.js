@@ -318,6 +318,19 @@ function requireAdmin(req, res, next) {
     }
 } 
 
+// for department drop down ในหน้าสร้างครู
+app.get('/api/subjects/group-names', requireAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT DISTINCT group_name FROM Subject WHERE group_name IS NOT NULL AND group_name != \'\' ORDER BY group_name'
+    );
+    res.json({ success: true, data: rows.map(r => r.group_name) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // ================================================= เริ่มงงละอะไรเยอะแยะวะ
 // (Admin) create teacher endpoint
 app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar'), async (req, res) => {

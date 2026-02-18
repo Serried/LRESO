@@ -8,6 +8,13 @@
     font-family: "Anuphan", sans-serif;
 }
 
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+h4 { font-size: 1.125rem; font-weight: 600; }
+h5 { font-size: 1rem; font-weight: 600; }
+h6 { font-size: 0.875rem; font-weight: 600; }
+
 /* animation รูป bg ตรงหน้า login ให้มัน pan จากซ้ายไปขวา */
 @keyframes bg-float {
     0% { background-position: 0% center; }
@@ -17,3 +24,33 @@
 .animate-bg-float {
     animation: bg-float 25s ease-in-out infinite alternate;
 }
+
+.react-datepicker {
+    border-radius: 1rem;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    font-family: inherit;
+  }
+  
+  .react-datepicker__header {
+    background-color: #f97316;
+    border-bottom: none;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+  }
+  
+  .react-datepicker__current-month,
+  .react-datepicker-time__header,
+  .react-datepicker-year-header {
+    color: white;
+  }
+  
+  .react-datepicker__day--selected {
+    background-color: #fb923c;
+    border-radius: 9999px;
+  }
+  
+  .react-datepicker__day:hover {
+    border-radius: 9999px;
+  }
+  
