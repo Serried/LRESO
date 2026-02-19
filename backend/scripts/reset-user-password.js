@@ -1,16 +1,13 @@
-// สำหรับ reset password ให้ user (admin เป็นคนทำ)
-//  วิธีใช้: node reset-user-password.js username new_pass
-
 const bcrypt = require('bcrypt');
-const pool = require('./db');
+const pool = require('../lib/db');
 
 async function reset() {
   const username = process.argv[2];
   const newPassword = process.argv[3];
 
   if (!username || !newPassword) {
-    console.log('Usage: node reset-user-password.js <username> <new_password>');
-    console.log('Example: node reset-user-password.js 2501001 mypassword');
+    console.log('Usage: node scripts/reset-user-password.js <username> <new_password>');
+    console.log('Example: node scripts/reset-user-password.js 2501001 mypassword');
     process.exit(1);
   }
 
