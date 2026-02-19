@@ -5,11 +5,6 @@ const fs = require('fs');
 const pool = require('./db');
 const db = require('./db').raw;
 const { parse } = require('csv-parse/sync');
-// idempotent (ชั่วคราว ๆ)
-// try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_first_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
-// try { db.exec('ALTER TABLE Teacher ADD COLUMN thai_last_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
-// try { db.exec('ALTER TABLE Student ADD COLUMN thai_first_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
-// try { db.exec('ALTER TABLE Student ADD COLUMN thai_last_name TEXT'); } catch (e) { if (!/duplicate column name/i.test(e.message)) throw e; }
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -119,7 +114,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ success: false, message: 'กรุณาใส่ชื่อบัญชีผู้ใช้และรหัสผ่าน'});
         }
 
-        const [rows] = await pool.query('SELECT userID, username, password_hash, role, refID, status, avatar FROM User WHERE username = ?', [username]);
+        const [rows] = await pool.query('SELECT userID, username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender FROM User WHERE username = ?', [username]);
 
         // DEBUG: ไม่เจอ user
         if (rows.length === 0) {
@@ -128,24 +123,26 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = rows[0];
-        let first_name = null, last_name = null, thai_first_name = null, thai_last_name = null;
+        let first_name = null, last_name = null, thai_first_name = user.thai_first_name ?? null, thai_last_name = user.thai_last_name ?? null, gender = user.gender ?? null;
 
         if (user.refID) {
           if (user.role === "TEACHER") {
-            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name FROM Teacher WHERE teacherID = ?", [user.refID]);
+            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name, gender FROM Teacher WHERE teacherID = ?", [user.refID]);
             if (data.length) {
               first_name = data[0].first_name;
               last_name = data[0].last_name;
-              thai_first_name = data[0].thai_first_name;
-              thai_last_name = data[0].thai_last_name;
+              thai_first_name = data[0].thai_first_name ?? thai_first_name;
+              thai_last_name = data[0].thai_last_name ?? thai_last_name;
+              gender = data[0].gender ?? gender;
             }
           } else if (user.role === "STUDENT") {
-            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name FROM Student WHERE studentID = ?", [user.refID]);
+            const [data] = await pool.query("SELECT first_name, last_name, thai_first_name, thai_last_name, gender FROM Student WHERE studentID = ?", [user.refID]);
             if (data.length) {
               first_name = data[0].first_name;
               last_name = data[0].last_name;
-              thai_first_name = data[0].thai_first_name;
-              thai_last_name = data[0].thai_last_name;
+              thai_first_name = data[0].thai_first_name ?? thai_first_name;
+              thai_last_name = data[0].thai_last_name ?? thai_last_name;
+              gender = data[0].gender ?? gender;
             }
           }
         }
@@ -180,7 +177,8 @@ app.post('/api/login', async (req, res) => {
                 first_name,
                 last_name,
                 thai_first_name,
-                thai_last_name
+                thai_last_name,
+                gender
             }
         });
     } catch (e) {
@@ -261,7 +259,7 @@ app.get('/api/me/admin', requireAuth, requireAdmin, async (req, res) => {
     const userID = req.user.userID;
 
     const [rows] = await pool.query(
-      'SELECT userID, username, role, avatar, status FROM User WHERE userID = ?',
+      'SELECT userID, username, role, avatar, status, gender FROM User WHERE userID = ?',
       [userID]
     );
 
@@ -391,8 +389,8 @@ app.post('/api/admin/teachers', requireAuth, requireAdmin, upload.single('avatar
       const avatarPath = `avatars/${req.file.filename}`;
 
       await pool.query(
-        'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
-        [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', avatarPath]
+        'INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+        [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', avatarPath, thai_first_name || null, thai_last_name || null, gender || null]
       );
   
       res.json({ success: true, message: `สร้างบัญชี (ครูผู้สอน) - ${username}:${password} สำเร็จ!`, password });
@@ -455,8 +453,8 @@ app.post('/api/admin/teachers/csv', requireAuth, requireAdmin, uploadCsv.single(
     const teacherID = teacherResult.insertId;
     const username = `${String(first_name).trim().toLowerCase()}.${String(last_name).trim().toLowerCase()[0]}`;
     await pool.query(
-      'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
-      [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', 'avatars/avatar-placeholder.jpg']
+      'INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+      [username, hashedPassword, 'TEACHER', teacherID, 'ACTIVE', 'avatars/avatar-placeholder.jpg', thai_first_name || null, thai_last_name || null, gender || null]
     );
 
     created.push({ username, password });
@@ -493,8 +491,8 @@ app.post('/api/admin/students', requireAuth, requireAdmin, upload.single('avatar
         const avatarPath = `avatars/${req.file.filename}`;
 
         await pool.query(
-            'INSERT INTO User (username, password_hash, role, refID, status, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))',
-            [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE', avatarPath]
+            'INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+            [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE', avatarPath, thai_first_name || null, thai_last_name || null, gender || null]
         );
   
       res.json({ success: true, message: `สร้างบัญชี (นักเรียน) - ${username}:${password} สำเร็จ!`, password });
@@ -551,16 +549,14 @@ app.put('/api/admin/teachers/:id', requireAuth, requireAdmin, express.json(), as
         teacherID
       ]
     );
-    // ถ้าชื่อจริงนามสกุลภาษาอังกฤษ โดนเปลี่ยน username ก็จะเปลี่ยนด้วย
+    // Sync username and thai names to User when teacher is updated
     const first = (first_name && typeof first_name === 'string') ? first_name.trim().toLowerCase() : '';
     const lastInitial = (last_name && typeof last_name === 'string') ? last_name.trim().toLowerCase().substring(0, 1) : '';
-    if (first && lastInitial) {
-      const newUsername = `${first}.${lastInitial}`;
-      await pool.query(
-        "UPDATE User SET username = ? WHERE refID = ? AND role = 'TEACHER'",
-        [newUsername, teacherID]
-      );
-    }
+    const newUsername = (first && lastInitial) ? `${first}.${lastInitial}` : null;
+    await pool.query(
+      "UPDATE User SET username = COALESCE(?, username), thai_first_name = ?, thai_last_name = ?, gender = ? WHERE refID = ? AND role = 'TEACHER'",
+      [newUsername || null, thai_first_name ?? null, thai_last_name ?? null, gender ?? null, teacherID]
+    );
     res.json({ success: true, message: 'อัปเดตข้อมูลครูสำเร็จ' });
   } catch (e) {
     console.error(e);
