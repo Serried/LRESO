@@ -274,6 +274,23 @@ app.get('/api/me/admin', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/me/student/news', requireAuth, requireStudent, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT a.*, u.thai_first_name, u.thai_last_name, u.role, u.avatar, u.gender
+      FROM Announcement a
+      INNER JOIN User u ON a.createdBy = u.userID
+      WHERE (a.targetRole = 'STUDENT' OR a.targetRole = 'ALL') AND (a.expireAt IS NULL OR a.expireAt > CURRENT_TIMESTAMP)
+      ORDER BY a.isPinned DESC, a.createdAt DESC;
+      `
+    )
+    res.json({ success: true, data: rows})
+  } catch(e) {
+    console.error(e.message)
+    res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการดึงข้อมูลประกาศข่าวสาร"})
+  }
+})
 
 app.get('/api/me/student/classes', requireAuth, requireStudent, async (req, res) => {
   try {
