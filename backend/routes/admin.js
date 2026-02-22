@@ -225,6 +225,48 @@ router.get('/classrooms', async (req, res) => {
     res.status(500).json({ success: false, message: e.message });
   }
 });
+
+router.get('/students', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT s.studentID, s.first_name, s.last_name, s.thai_first_name, s.thai_last_name,
+        u.username AS studentCode, s.gender, s.dob, s.tel, s.address, s.email, s.status
+      FROM Student s
+      JOIN User u ON u.refID = s.studentID AND u.role = 'STUDENT'
+      ORDER BY u.username
+    `);
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.put('/students/:id', express.json(), async (req, res) => {
+  try {
+    const studentID = parseInt(req.params.id, 10);
+    if (isNaN(studentID)) {
+      return res.status(400).json({ success: false, message: 'Invalid student ID' });
+    }
+    const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, email, status } = req.body;
+    await pool.query(
+      `UPDATE Student SET first_name = ?, last_name = ?, thai_first_name = ?, thai_last_name = ?,
+        gender = ?, dob = ?, tel = ?, address = ?, email = ?, status = ?
+       WHERE studentID = ?`,
+      [first_name ?? null, last_name ?? null, thai_first_name ?? null, thai_last_name ?? null,
+        gender ?? null, dob ?? null, tel ?? null, address ?? null, (email || '').trim() || null, status ?? null, studentID]
+    );
+    await pool.query(
+      "UPDATE User SET thai_first_name = ?, thai_last_name = ?, gender = ? WHERE refID = ? AND role = 'STUDENT'",
+      [thai_first_name ?? null, thai_last_name ?? null, gender ?? null, studentID]
+    );
+    res.json({ success: true, message: 'อัปเดตข้อมูลนักเรียนสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 router.get('/classrooms/:classID/students', async (req, res) => {
   try {
     const classID = parseInt(req.params.classID, 10);
@@ -512,6 +554,119 @@ router.put('/classrooms/:classID/add-student', async (req, res) => {
       res.status(500).json({ success: false, message: e.message });
     }
   });
+
+  router.get('/classrooms/:classID/subjects-for-schedule', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const classID = parseInt(req.params.classID, 10);
+      const year = parseInt(req.query.year, 10);
+      const term = parseInt(req.query.term, 10);
+      if (isNaN(classID) || isNaN(year) || isNaN(term)) {
+        return res.status(400).json({ success: false, message: 'classID, year, term จำเป็น' });
+      }
+      const [rows] = await pool.query(`
+        SELECT cs.subjectID, s.subjectName, s.credit, cs.teacherID,
+          trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS teacherName
+        FROM ClassroomSubject cs
+        JOIN Subject s ON cs.subjectID = s.subjectID
+        LEFT JOIN Teacher t ON cs.teacherID = t.teacherID
+        WHERE cs.classID = ? AND cs.year = ? AND cs.term = ? AND cs.isOpen = 1
+      `, [classID, year, term]);
+      res.json({ success: true, data: rows });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  router.get('/classrooms/:classID/schedule', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const classID = parseInt(req.params.classID, 10);
+      const year = parseInt(req.query.year, 10);
+      const term = parseInt(req.query.term, 10);
+      if (isNaN(classID) || isNaN(year) || isNaN(term)) {
+        return res.status(400).json({ success: false, message: 'classID, year, term จำเป็น' });
+      }
+      const [rows] = await pool.query(
+        'SELECT subjectID, teacherID, dayOfWeek, period FROM ClassSchedule WHERE classID = ? AND year = ? AND term = ?',
+        [classID, year, term]
+      );
+      res.json({ success: true, data: rows });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // ถ้าชั่วโมง <= หน่วยกิต
+  router.put('/classrooms/:classID/schedule', express.json(), requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const classID = parseInt(req.params.classID, 10);
+      const year = parseInt(req.body.year, 10);
+      const term = parseInt(req.body.term, 10);
+      const slots = Array.isArray(req.body.slots) ? req.body.slots : [];
+      if (isNaN(classID) || isNaN(year) || isNaN(term)) {
+        return res.status(400).json({ success: false, message: 'classID, year, term จำเป็น' });
+      }
+
+      // เช็คตารางสอน
+      const hoursBySubject = {};
+      for (const s of slots) {
+        const sid = parseInt(s.subjectID, 10);
+        if (!isNaN(sid)) {
+          hoursBySubject[sid] = (hoursBySubject[sid] || 0) + 1;
+        }
+      }
+
+      // Get credits per subject from ClassroomSubject + Subject
+      const [subjectRows] = await pool.query(`
+        SELECT cs.subjectID, s.credit
+        FROM ClassroomSubject cs
+        JOIN Subject s ON cs.subjectID = s.subjectID
+        WHERE cs.classID = ? AND cs.year = ? AND cs.term = ?
+      `, [classID, year, term]);
+
+      for (const row of subjectRows) {
+        const hours = hoursBySubject[row.subjectID] || 0;
+        const credit = parseFloat(row.credit) || 0;
+        if (hours > credit) {
+          const [n] = await pool.query('SELECT subjectName FROM Subject WHERE subjectID = ?', [row.subjectID]);
+          const name = (n && n[0] && n[0].subjectName) || row.subjectID;
+          return res.status(400).json({
+            success: false,
+            message: `รายวิชา "${name}" ใช้ชั่วโมง (${hours}) เกินหน่วยกิต (${credit})`
+          });
+        }
+      }
+
+      dbRaw.exec('BEGIN TRANSACTION');
+      try {
+        dbRaw.prepare('DELETE FROM ClassSchedule WHERE classID = ? AND year = ? AND term = ?').run(classID, year, term);
+        const insertStmt = dbRaw.prepare(
+          'INSERT INTO ClassSchedule (classID, subjectID, teacherID, dayOfWeek, period, year, term) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        for (const s of slots) {
+          const sid = parseInt(s.subjectID, 10);
+          const tid = s.teacherID != null ? parseInt(s.teacherID, 10) : null;
+          const dow = parseInt(s.dayOfWeek, 10);
+          const period = parseInt(s.period, 10);
+          if (!isNaN(sid) && !isNaN(dow) && !isNaN(period)) {
+            insertStmt.run(classID, sid, tid, dow, period, year, term);
+          }
+        }
+        dbRaw.exec('COMMIT');
+      } catch (txErr) {
+        dbRaw.exec('ROLLBACK');
+        throw txErr;
+      }
+
+
+      res.json({ success: true, message: 'บันทึกตารางเรียนสำเร็จ' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
 router.get('/announcements', async (req, res) => {
   try {
     const [rows] = await pool.query(`
