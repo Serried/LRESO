@@ -69,11 +69,12 @@ function AdminDash() {
     );
   }
   const items = [
-    { to: "/me/manage-subject", title: "เพิ่ม-ลด รายวิชา", description: "จัดการการเปิด–ปิดรายวิชาในแต่ละภาคเรียน พร้อมกำหนดรายละเอียดที่เกี่ยวข้องกับการลงทะเบียน" },
-    { to: "/me/manage-news", title: "ข่าวสาร / ประชาสัมพันธ์", description: "เผยแพร่ประกาศ ข่าวสาร และข้อมูลสำคัญให้กับนักเรียนและครูผู้สอนภายในระบบ" },
-    { to: "/me/add-student", title: "จัดการข้อมูลนักเรียน", description: "เพิ่ม แก้ไข หรือลบข้อมูลนักเรียน รวมถึงตรวจสอบสถานะการลงทะเบียนและประวัติการศึกษา"},
-    { to: "/me/add-teacher", title: "จัดการข้อมูลครูผู้สอน", description: "จัดการข้อมูลครูผู้สอน รายวิชาที่รับผิดชอบ" },
-    { to: "/me/manage-reports", title: "ตรวจสอบคำร้อง", description: "พิจารณาและดำเนินการคำร้องต่าง ๆ ที่ถูกส่งเข้ามาจากผู้ใช้งานในระบบ" },
+    { to: "/me/manage-subject", title: "เพิ่ม-ลด รายวิชา", description: "จัดการการเปิด-ปิดรายวิชาในแต่ละภาคเรียน พร้อมกำหนดรายละเอียดที่เกี่ยวข้องกับการลงทะเบียน", img: "/cards/admin/ManageSubject.png"},
+    { to: "/me/manage-news", title: "ข่าวสาร / ประชาสัมพันธ์", description: "เผยแพร่ประกาศ ข่าวสาร และข้อมูลสำคัญให้กับนักเรียนและครูผู้สอนภายในระบบ", img: "/cards/admin/ManageNews.png" },
+    { to: "/me/add-student", title: "จัดการข้อมูลนักเรียน", description: "เพิ่ม แก้ไข หรือลบข้อมูลนักเรียน รวมถึงตรวจสอบสถานะการลงทะเบียนและประวัติการศึกษา", img: "/cards/admin/AddStudent.png"},
+    { to: "/me/add-teacher", title: "จัดการข้อมูลครูผู้สอน", description: "จัดการข้อมูลครูผู้สอน รายวิชาที่รับผิดชอบ", img: "/cards/admin/AddTeacher.png" },
+    { to: "/me/manage-reports", title: "ตรวจสอบคำร้อง", description: "พิจารณาและดำเนินการคำร้องต่าง ๆ ที่ถูกส่งเข้ามาจากผู้ใช้งานในระบบ", img: "/cards/admin/ManageReports.png" },
+    { to: "/me/manage-classroom", title: "จัดการห้องเรียน", description: "จัดการสร้าง-ลบห้องเรียนในระบบโรงเรียน", img: "/cards/admin/ManageClass.png" },
   ];
   
 
@@ -101,7 +102,7 @@ function AdminDash() {
     >
       <div className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
         <img
-          src="https://placehold.co/600x400"
+          src={item.img}
           alt=""
           className="w-full h-48 object-cover object-center"
         />
@@ -118,7 +119,7 @@ function AdminDash() {
           <div className="mt-42">
             <img src={avatarUrl} alt="" className="rounded-full w-3xs" />
           </div>
-          <p className="text-2xl font-bold mt-5">{admin.username}</p>
+          <p className="text-2xl font-bold mt-5">{user.gender === 'M' ? "นาย" : "นางสาว"}{user.thai_first_name} {user.thai_last_name}</p>
           <p className="text-gray-600">ผู้ดูแลระบบ</p>
         </div>
       </div>
