@@ -27,12 +27,13 @@ router.post('/login', async (req, res) => {
     let thai_first_name = user.thai_first_name ?? null;
     let thai_last_name = user.thai_last_name ?? null;
     let gender = user.gender ?? null;
+    let email = null;
 
     if (user.refID) {
       const refTable = user.role === 'TEACHER' ? 'Teacher' : 'Student';
       const refIdCol = user.role === 'TEACHER' ? 'teacherID' : 'studentID';
       const [data] = await pool.query(
-        `SELECT first_name, last_name, thai_first_name, thai_last_name, gender FROM ${refTable} WHERE ${refIdCol} = ?`,
+        `SELECT first_name, last_name, thai_first_name, thai_last_name, gender, email FROM ${refTable} WHERE ${refIdCol} = ?`,
         [user.refID]
       );
       if (data.length) {
@@ -41,6 +42,7 @@ router.post('/login', async (req, res) => {
         thai_first_name = data[0].thai_first_name ?? thai_first_name;
         thai_last_name = data[0].thai_last_name ?? thai_last_name;
         gender = data[0].gender ?? gender;
+        email = data[0].email ?? null;
       }
     }
 
@@ -72,7 +74,8 @@ router.post('/login', async (req, res) => {
         last_name,
         thai_first_name,
         thai_last_name,
-        gender
+        gender,
+        email
       }
     });
   } catch (e) {
