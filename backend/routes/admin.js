@@ -360,4 +360,156 @@ router.put('/classrooms/:classID/add-student', async (req, res) => {
   }
 });
 
+  router.post('/subjects/add-subject', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { classID, classIDs, subjectID, subjectName, group_name, groupName, credit, teacherID, year, term, hours, isOpen, maxStudent, enrollStart, enrollEnd } = req.body;
+  
+      const classIdList = Array.isArray(classIDs) ? classIDs : (classID != null && classID !== '' ? [classID] : []);
+      if (classIdList.length === 0 || (!subjectID && !subjectName) || year == null || year === '' || term == null || term === '') {
+        return res.status(400).json({ success: false, message: 'ข้อมูลไม่ครบถ้วน (ชั้นเรียน, วิชา, ปีการศึกษา)' });
+      }
+
+      const yearInt = parseInt(year, 10);
+      const termInt = parseInt(term, 10);
+      if (isNaN(yearInt) || isNaN(termInt)) {
+        return res.status(400).json({ success: false, message: 'รูปแบบข้อมูลไม่ถูกต้อง' });
+      }
+
+      let resolvedSubjectID = subjectID != null && subjectID !== '' ? parseInt(subjectID, 10) : null;
+      if (!resolvedSubjectID && subjectName && String(subjectName).trim()) {
+        const [rows] = await pool.query('SELECT subjectID FROM Subject WHERE subjectName = ?', [String(subjectName).trim()]);
+        if (!rows || rows.length === 0) {
+          const groupVal = (group_name || groupName) && String(group_name || groupName).trim() ? String(group_name || groupName).trim() : null;
+          const creditVal = (credit != null && credit !== '') ? parseFloat(credit) : 1.0;
+          const [insertResult] = await pool.query('INSERT INTO Subject (subjectName, group_name, credit) VALUES (?, ?, ?)', [String(subjectName).trim(), groupVal, creditVal]);
+          resolvedSubjectID = insertResult.insertId;
+        } else {
+          resolvedSubjectID = rows[0].subjectID;
+        }
+      }
+      if (!resolvedSubjectID || isNaN(resolvedSubjectID)) {
+        return res.status(400).json({ success: false, message: 'ไม่พบวิชา' });
+      }
+
+      const teacherIdVal = teacherID ? parseInt(teacherID, 10) : null;
+      let inserted = 0;
+      for (const cid of classIdList) {
+        const classIdInt = parseInt(cid, 10);
+        if (isNaN(classIdInt)) continue;
+        try {
+          await pool.query(
+            `INSERT OR IGNORE INTO ClassroomSubject (classID, subjectID, teacherID, year, term, hours, semester, academicYear, isOpen, maxStudent, enrollStart, enrollEnd)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              classIdInt,
+              resolvedSubjectID,
+              teacherIdVal,
+              yearInt,
+              termInt,
+              hours ?? 0,
+              termInt,
+              yearInt,
+              isOpen !== undefined ? (isOpen ? 1 : 0) : 1,
+              maxStudent ?? null,
+              enrollStart || null,
+              enrollEnd || null,
+            ]
+          );
+          inserted++;
+        } catch (_) {}
+      }
+  
+      res.json({ success: true, message: `เพิ่มรายวิชาสำเร็จ ${inserted} ห้อง`, addedCount: inserted });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+  
+  router.post('/subjects/close-subject', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const { classID, subjectID } = req.body;
+      if (!classID || !subjectID) {
+        return res.status(400).json({ success: false, message: 'classID และ subjectID จำเป็น' });
+      }
+      await pool.query(
+        `UPDATE ClassroomSubject SET isOpen = 0 WHERE classID = ? AND subjectID = ?`,
+        [classID, subjectID]
+      );
+      res.json({ success: true, message: 'ปิดรายวิชาสำเร็จ' });
+    } catch (e) {
+      console.error(e.message);
+      res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
+    }
+  });
+
+  router.delete('/subjects/classroom-subject', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const { classID, subjectID } = req.body;
+      if (!classID || !subjectID) {
+        return res.status(400).json({ success: false, message: 'classID และ subjectID จำเป็น' });
+      }
+      await pool.query(
+        `DELETE FROM ClassroomSubject WHERE classID = ? AND subjectID = ?`,
+        [classID, subjectID]
+      );
+      res.json({ success: true, message: 'ลบรายวิชาสำเร็จ' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
+    }
+  });
+
+  router.post('/subjects/reopen-subject', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const { classID, subjectID } = req.body;
+      if (!classID || !subjectID) {
+        return res.status(400).json({ success: false, message: 'classID และ subjectID จำเป็น' });
+      }
+      await pool.query(
+        `UPDATE ClassroomSubject SET isOpen = 1 WHERE classID = ? AND subjectID = ?`,
+        [classID, subjectID]
+      );
+      res.json({ success: true, message: 'เปิดรายวิชาสำเร็จ' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
+    }
+  });
+  
+  router.get('/subjects/catalog', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const [rows] = await pool.query('SELECT subjectID, subjectName FROM Subject ORDER BY subjectName');
+      res.json({ success: true, data: rows });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  router.get('/subjects/all', requireAdmin, requireAuth, async (req, res) => {
+    try {
+      const [rows] = await pool.query(`
+        SELECT
+          cs.classID,
+          cs.subjectID,
+          s.subjectName,
+          s.group_name,
+          s.credit,
+          cs.year,
+          cs.term,
+          cs.isOpen,
+          c.className,
+          trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS teacherName
+        FROM ClassroomSubject cs
+        JOIN Subject s ON cs.subjectID = s.subjectID
+        JOIN Classroom c ON cs.classID = c.classID
+        LEFT JOIN Teacher t ON cs.teacherID = t.teacherID
+      `);
+      res.json({ success: true, data: rows });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
 module.exports = router;
