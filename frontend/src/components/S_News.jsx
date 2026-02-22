@@ -1,186 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import NavBar from './NavBar';
+import { useState, useEffect } from "react";
+import NavBar from "./NavBar";
+import AnnouncementCard from "./AnnouncementCard";
 
-const API_BASE = "http://localhost:3000";
+const API = "http://localhost:3000";
 
 function S_News() {
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [serverTime, setServerTime] = useState(null);
+  const [clientTimeAtFetch, setClientTimeAtFetch] = useState(null);
+  const [clientTime, setClientTime] = useState(() => new Date());
 
-  
+  const fetchServerTime = async () => {
+    const clientNow = new Date();
+    try {
+      const res = await fetch(`${API}/api/time`);
+      const data = await res.json();
+      if (data.serverTime) {
+        setServerTime(new Date(data.serverTime));
+        setClientTimeAtFetch(clientNow);
+      }
+    } catch (e) {}
+  };
 
-  const [newsData, setNewsData] = useState([]);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('ALL');
+  const serverNow = serverTime && clientTimeAtFetch
+    ? new Date(serverTime.getTime() + (clientTime.getTime() - clientTimeAtFetch.getTime()))
+    : null;
 
   useEffect(() => {
-
     const fetchNews = async () => {
-  
-      const token = localStorage.getItem("token");
-  
-      const res = await fetch(`${API_BASE}/api/me/student/news`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API}/api/me/student/news`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAnnouncements(data.data || []);
+        } else {
+          setError(data.message || "เกิดข้อผิดพลาด");
         }
-      });
-  
-      const data = await res.json();
-      console.log(data);
-
-      if (data.success) {
-        setNewsData(data.data);
+      } catch (e) {
+        setError("ไม่สามารถโหลดประกาศได้");
+      } finally {
+        setLoading(false);
       }
-  
     };
-  
     fetchNews();
-  
+    fetchServerTime();
+    const interval = setInterval(fetchServerTime, 10000);
+    return () => clearInterval(interval);
   }, []);
-  
 
-  const roleColor = (role) => {
-    switch (role) {
-      case "ฝ่ายสารวัตรนักเรียน":
-        return "bg-orange-500 text-white";
-      case "ครูผู้สอน":
-        return "bg-blue-500 text-white";
-      default:
-        return "bg-gray-300";
-    }
-  };
-
-  const getFullName = (news) => {
-    let prefix = "";
-  
-    if (news.gender === "M") prefix = "นาย";
-    else if (news.gender === "F") prefix = "นางสาว";
-  
-    return `${prefix}${news.thai_first_name} ${news.thai_last_name}`;
-  };
-  
-
-  const formatThaiDateTime = (date) =>
-    new Date(date).toLocaleString("th-TH", {
-      dateStyle: "medium",
-      timeStyle: "short"
-    });
-
-  const timeAgo = (date) => {
-    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
-    if (diff < 60) return `${diff} วินาทีที่แล้ว`;
-    if (diff < 3600) return `${Math.floor(diff/60)} นาทีที่แล้ว`;
-    if (diff < 86400) return `${Math.floor(diff/3600)} ชั่วโมงที่แล้ว`;
-    return `${Math.floor(diff/86400)} วันที่แล้ว`;
-  };
-
-  const filteredNews = newsData.filter(n =>
-    (filter === 'ALL' || n.category === filter) &&
-    n.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const pinnedNews = filteredNews.filter(n => n.isPinned);
-  const normalNews = filteredNews.filter(n => !n.isPinned);
+  useEffect(() => {
+    const tick = setInterval(() => setClientTime(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   return (
     <>
       <NavBar />
 
-      <div className="min-h-[calc(100vh-80px)] bg-gray-100 flex justify-center py-6">
-        <div className="w-full max-w-4xl flex flex-col gap-4">
+      <div className="min-h-[calc(100vh-80px)] bg-slate-100 flex justify-center py-6">
+        <div className="w-full max-w-3xl px-4">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">
+            ข่าวสาร / ประชาสัมพันธ์
+          </h1>
 
-          <h2 className="text-2xl font-bold text-gray-800">
-            ประกาศข่าวสาร
-          </h2>
-
-          <div className="flex gap-3">
-            <input
-              placeholder="ค้นหาประกาศ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 border px-4 py-2 rounded-lg shadow-sm"
-            />
-
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="border px-4 py-2 rounded-lg shadow-sm"
-            >
-              <option value="ALL">ทั้งหมด</option>
-              <option value="ACADEMIC">วิชาการ</option>
-              <option value="EVENT">กิจกรรม</option>
-              <option value="GENERAL">ทั่วไป</option>
-              <option value="URGENT">ด่วน</option>
-            </select>
-          </div>
-
-          {/* PINNED */}
-          {pinnedNews.map(news => (
-            <div
-              key={news.announcementID}
-              className="bg-yellow-50 border border-yellow-300 p-5 rounded-xl shadow-sm relative"
-            >
-              <span className="absolute top-3 right-3 text-xs bg-yellow-500 text-white px-2 py-1 rounded">
-                PINNED
-              </span>
-
-              <div className="flex items-center gap-3 mb-2">
-                <img
-                  src={`${API_BASE}/uploads/${news.avatar}`}
-                  className="w-10 h-10 rounded-full object-cover"
+          {loading ? (
+            <p className="text-gray-500 text-center py-12">กำลังโหลด...</p>
+          ) : error ? (
+            <p className="text-red-500 text-center py-12">{error}</p>
+          ) : announcements.length === 0 ? (
+            <p className="text-gray-500 text-center py-12">
+              ขณะนี้ยังไม่มีประกาศ/ประชาสัมพันธ์ใด ๆ
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {announcements.map((a) => (
+                <AnnouncementCard
+                  key={a.announceID ?? a.announcementID}
+                  title={a.title}
+                  content={a.content}
+                  category={a.category}
+                  isPinned={!!a.isPinned}
+                  createdAt={a.createdAt}
+                  authorName={`${a.thai_first_name || ""} ${a.thai_last_name || ""}`.trim()}
+                  authorRole={a.role === "TEACHER" ? "ครูผู้สอน" : "ผู้ดูแลระบบ"}
+                  avatar={a.avatar}
+                  serverNow={serverNow}
                 />
-
-                <div>
-                  <p className="font-semibold text-sm">
-                    {getFullName(news)}
-                  </p>
-
-                  <span className={`text-xs px-2 py-0.5 rounded ${roleColor(news.role === "TEACHER" ? "ครูผู้สอน" : "ฝ่ายสารวัตรนักเรียน")}`}>
-                    {news.role}
-                  </span>
-
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formatThaiDateTime(news.createdAt)} • {timeAgo(news.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              <p className="font-medium mb-1">{news.title}</p>
-              <p className="text-sm text-gray-600">{news.content}</p>
+              ))}
             </div>
-          ))}
-
-          
-          {/* NORMAL */}
-          {normalNews.map(news => (
-            <div
-              key={news.announceID}
-              className="bg-white border border-[#ddd] p-5 rounded-xl shadow-sm"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <img
-                  src={`${API_BASE}/uploads/${news.avatar}`}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {formatThaiDateTime(news.createdAt)} • {timeAgo(news.createdAt)}
-                  </p>
-                  <p className="font-semibold text-sm">
-                    {getFullName(news)}
-                  </p>
-
-                  <span className={`text-xs px-2 py-0.5 rounded ${roleColor(news.role === "TEACHER" ? "ครูผู้สอน" : "ฝ่ายสารวัตรนักเรียน")}`}>
-                    {news.role === "TEACHER" ? "ครูผู้สอน" : "ฝ่ายสารวัตรนักเรียน"}
-                  </span>
-
-                </div>
-              </div>
-
-              <p className="font-medium mb-1">เรื่อง: {news.title}</p>
-              <p className="text-sm text-gray-600">{news.content}</p>
-            </div>
-          ))}
-
+          )}
         </div>
       </div>
     </>

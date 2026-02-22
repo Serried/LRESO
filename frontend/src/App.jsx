@@ -21,6 +21,7 @@ import T_News from './components/T_News.jsx'
 import T_Schedule from './components/T_Schedule.jsx'
 import RoleBasedRoute from './components/RoleBasedRoute.jsx'
 import A_ManageClassroom from './components/A_ManageClassroom.jsx'
+import S_ViewScore from './components/S_ViewScore.jsx'
 
 function App() {
 
