@@ -602,4 +602,50 @@ router.delete('/announcement/:id', async (req, res) => {
     res.status(500).json({ success: false, message: e.message });
   }
 });
+
+router.get('/tickets', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT t.*, u.thai_first_name, u.thai_last_name, u.username, u.avatar, u.gender
+      FROM Ticket t
+      LEFT JOIN User u ON t.userID = u.userID
+      ORDER BY t.createdAt DESC
+    `);
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.put('/tickets/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { status, comment } = req.body;
+    const validStatuses = ['OPEN', 'IN_PROGRESS', 'CLOSED'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'สถานะไม่ถูกต้อง' });
+    }
+    if (status === 'CLOSED' && (!comment || !String(comment).trim())) {
+      return res.status(400).json({ success: false, message: 'กรุณาใส่ความเห็นเมื่อปิดคำร้อง' });
+    }
+    const [rows] = await pool.query(
+      'SELECT ticketID FROM Ticket WHERE ticketID = ? LIMIT 1',
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบคำร้อง' });
+    }
+    const closeComment = status === 'CLOSED' ? String(comment).trim() : null;
+    await pool.query(
+      'UPDATE Ticket SET status = ?, closeComment = ? WHERE ticketID = ?',
+      [status, closeComment, id]
+    );
+    res.json({ success: true, message: 'อัปเดตสถานะเรียบร้อยแล้ว' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 module.exports = router;
