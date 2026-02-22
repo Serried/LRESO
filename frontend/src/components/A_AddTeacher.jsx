@@ -365,8 +365,16 @@ function A_AddTeacher() {
                 อัพโหลดไฟล์ค่าที่คั่นด้วยจุลภาค
                 <input type='file' id='csv-upload' accept='.csv' className='hidden' onChange={handleCSV} />
               </label>
-        
             </div>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              <a
+                href={`data:text/csv;charset=utf-8,${encodeURIComponent('\uFEFFfirst_name,last_name,thai_first_name,thai_last_name,gender,dob,tel,email,department\nTanakrit,Incham,ธนกฤต,อินทร์ฉ่ำ,M,2549-02-12,0123456789,67070061@kmitl.ac.th,คณิตศาสตร์')}`}
+                download="teacher-import-template.csv"
+                className="text-blue-600 hover:underline"
+              >
+                ดาวน์โหลดตัวอย่าง CSV
+              </a>
+            </p>
 
           </form>
 

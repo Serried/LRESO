@@ -3,6 +3,7 @@ const fs = require('fs');
 const bcrypt = require('bcrypt');
 const { parse } = require('csv-parse/sync');
 const pool = require('../lib/db');
+const dbRaw = require('../lib/db').raw;
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { generatePassword } = require('../utils/password');
 const { createStudentUsername } = require('../utils/username');
@@ -132,9 +133,51 @@ router.put('/teachers/:id', express.json(), async (req, res) => {
   }
 });
 
+router.post('/students/csv', uploadCsv.single('csv'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'กรุณาอัปโหลดไฟล์ค่าที่คั่นด้วยจุลภาค' });
+    }
+
+    const csv = fs.readFileSync(req.file.path, 'utf8');
+    const records = parse(csv, { columns: true, skip_empty_lines: true, bom: true });
+    const created = [];
+
+    for (const row of records) {
+      const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, adress, email } = row;
+      const addr = address || adress;
+
+      if (!first_name || !last_name) continue;
+
+      const password = generatePassword();
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const [studentResult] = await pool.query(
+        'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [first_name, last_name, thai_first_name || null, thai_last_name || null, gender || null, dob || null, tel || null, addr || null, (email || '').trim() || null, 'STUDYING']
+      );
+
+      const studentID = studentResult.insertId;
+      const username = await createStudentUsername(pool);
+
+      await pool.query(
+        'INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))',
+        [username, hashedPassword, 'STUDENT', studentID, 'ACTIVE', 'avatars/avatar-placeholder.jpg', thai_first_name || null, thai_last_name || null, gender || null]
+      );
+
+      created.push({ username, password });
+    }
+
+    res.json({ success: true, message: `สร้างบัญชีนักเรียนสำเร็จจำนวน ${created.length} บัญชี`, account: created });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 router.post('/students', upload.single('avatar'), async (req, res) => {
   try {
-    const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, adress } = req.body;
+    const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, adress, email } = req.body;
 
     if (!first_name || !last_name) {
       return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อ-นามสกุล (English) ให้ครบ' });
@@ -147,8 +190,8 @@ router.post('/students', upload.single('avatar'), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [studentResult] = await pool.query(
-      'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [first_name, last_name, thai_first_name || null, thai_last_name || null, gender || null, dob || null, tel || null, adress || null, 'STUDYING']
+      'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [first_name, last_name, thai_first_name || null, thai_last_name || null, gender || null, dob || null, tel || null, adress || null, (email || '').trim() || null, 'STUDYING']
     );
 
     const studentID = studentResult.insertId;
