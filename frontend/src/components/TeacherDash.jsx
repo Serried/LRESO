@@ -70,10 +70,10 @@ useEffect(() => {
   const age = currentYear - birthYear;
 
   const items = [
-    { to: "/me/schedule", title: "ตารางสอนส่วนบุคคล", description: "ตรวจสอบตารางสอนของรายวิชาที่รับผิดชอบในแต่ละวันและภาคเรียน" },
-    { to: "/me/news", title: "ข่าวสาร / ประชาสัมพันธ์", description: "ติดตามประกาศและข้อมูลสำคัญจากทางโรงเรียนหรือฝ่ายวิชาการ" },
-    { to: "/me/manage-score", title: "จัดการคะแนนนักเรียน", description: "บันทึก แก้ไข และตรวจสอบผลการเรียนของนักเรียนในรายวิชาที่สอน"},
-    { to: "/me/data", title: "ข้อมูลส่วนบุคคล", description: "ตรวจสอบข้อมูลส่วนบุคคล" },  ];
+    { to: "/me/schedule", title: "ตารางสอนส่วนบุคคล", description: "ตรวจสอบตารางสอนของรายวิชาที่รับผิดชอบในแต่ละวันและภาคเรียน", img: "/cards/teacher/ViewSchedule.jpg" },
+    { to: "/me/news", title: "ข่าวสาร / ประชาสัมพันธ์", description: "ติดตามประกาศและข้อมูลสำคัญจากทางโรงเรียนหรือฝ่ายวิชาการ" , img: "/cards/teacher/News.png"},
+    { to: "/me/manage-score", title: "จัดการคะแนนนักเรียน", description: "บันทึก แก้ไข และตรวจสอบผลการเรียนของนักเรียนในรายวิชาที่สอน", img: "/cards/teacher/ManageScore.png" },
+    { to: "/me/data", title: "ข้อมูลส่วนบุคคล", description: "ตรวจสอบข้อมูลส่วนบุคคล", img: "/cards/teacher/Info.jpg" },  ];
 
   return (
     <>
@@ -99,7 +99,7 @@ useEffect(() => {
     >
       <div className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
         <img
-          src="https://placehold.co/600x400"
+          src={item.img}
           alt=""
           className="w-full h-48 object-cover object-center"
         />

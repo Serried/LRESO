@@ -80,7 +80,7 @@ useEffect(() => {
   return (
     <>
       <NavBar />
-      <div id="container" className="flex h-screen w-full gap-6 bg-gray-100">
+      <div id="container" className="flex min-h-screen w-full gap-6 bg-gray-100">
         <div id="left" className="w-1/5 bg-white border border-[#ddd] rounded-xl p-5">
           <p>
             เวลาของคุณ: <strong>{formatTime(clientTime)}</strong>
@@ -89,43 +89,27 @@ useEffect(() => {
             เวลาของเซิร์ฟเวอร์: <strong>{formatTime(serverTime)}</strong>
           </p>
         </div>
-        <div id="middle" className="w-3/5 min-w-0 grid grid-cols-2 p-6 gap-6 content-start">
-          <Link to="/me/schedule" className="block w-full h-full">
-          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
-            <div className="p-4">
-              <h5 className="text-lg font-bold">ตารางเรียนส่วนบุคคล</h5>
-              <p className="text-md mb-10">ตรวจสอบตารางเรียนส่วนบุคคล</p>
-            </div>
-          </div>
-          </Link>
-          <Link to="/me/data" className="block w-full h-full">
-          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
-            <div className="p-4">
-              <h5 className="text-lg font-bold">ข้อมูลส่วนบุคคล</h5>
-              <p className="text-md mb-10">ตรวจสอบข้อมูลส่วนบุคคล</p>
-            </div>
-          </div>
-          </Link>
-          <Link to="/me/news" className="block w-full h-full">
-          <div id="card" className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
-            <div className="p-4">
-              <h5 className="text-lg font-bold">ข่าวสาร / ประชาสัมพันธ์</h5>
-              <p className="text-md mb-10">ติดตามข่าวสาร / ประชาสัมพันธ์</p>
-            </div>
-          </div>
-          </Link>
-          <Link to="/me/help" className="block w-full h-full">
-          <div id="card" className="ww-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
-            <img src="https://placehold.co/600x400" alt="" className="w-full h-48 object-cover object-center" />
-            <div className="p-4">
-              <h5 className="text-lg font-bold">ติดต่อฝ่ายทะเบียน</h5>
-              <p className="text-md mb-10">ติดต่อฝ่ายทะเบียน</p>
-            </div>
-          </div>
-          </Link>
+        <div id="middle" className="w-3/5 min-w-0 grid grid-cols-2 p-6 gap-6 content-start ">
+          {(() => {
+            const cards = [
+              { to: "/me/schedule", title: "ตารางเรียนส่วนบุคคล", description: "ตรวจสอบตารางเรียนส่วนบุคคล", img: "/cards/student/ViewSchedule.jpg" },
+              { to: "/me/data", title: "ข้อมูลส่วนบุคคล", description: "ตรวจสอบข้อมูลส่วนบุคคล", img: "/cards/student/Info.png" },
+              { to: "/me/news", title: "ข่าวสาร / ประชาสัมพันธ์", description: "ติดตามข่าวสาร / ประชาสัมพันธ์", img: "/cards/student/News.png" },
+              { to: "/bug-report", title: "ติดต่อฝ่ายทะเบียน", description: "ติดต่อฝ่ายทะเบียน", img: "/cards/student/ReportBug.png" },
+              { to: "/me/score", title: "ข้อมูลผลการเรียน", description: "ตรวจสอบข้อมูลผลการเรียน", img: "/cards/student/ViewScore.png" },
+            ];
+            return cards.map((card, i) => (
+            <Link key={i} to={card.to} className={`block w-full h-full ${cards.length % 2 != 0 && i === cards.length - 1 ? "col-span-2" : ""}`}>
+              <div className="w-full h-full overflow-hidden border border-[#ddd] shadow-xl/30 rounded-xl bg-white">
+                <img src={card.img} alt="" className="w-full h-48 object-cover object-center" />
+                <div className="p-4">
+                  <h5 className="text-lg font-bold">{card.title}</h5>
+                  <p className="text-md mb-10">{card.description}</p>
+                </div>
+              </div>
+            </Link>
+          ));
+          })()}
         </div>
         <div id="right" className="w-1/5 bg-white border border-[#ddd] rounded-xl flex flex-col items-center justify-start">
           <div className="mt-42">
@@ -134,23 +118,17 @@ useEffect(() => {
           {student && (
             <p className="text-2xl font-bold mt-5">
               {student.gender == "M" ? "นาย" : "นางสาว"}
-              {student.first_name} {student.last_name}
+              {student.thai_first_name} {student.thai_last_name}
             </p>
           )}
-          {/* ยังไม่ได้กำหนดว่านักเรียนคนไหนอยู่ห้องไหน */}
           <p className="text-2xl font-bold">{user.username}</p>
-          <div className="flex flex-row gap-15">
+          <div className="flex flex-col gap-2">
           <p>ชั้น: {studentClasses[0]?.className || 'ไม่พบข้อมูล'}</p>
+          <p>แผนการเรียน: {studentClasses[0]?.plan ? studentClasses[0].plan.replace(/^แผน/, ''): 'ไม่พบข้อมูล'}</p>
           <p>อายุ: {age} ปี</p>
           </div>
-          {/* เดี๋ยวเอามาใส่ */}
-          
-          <p>แผนการเรียน: </p>
           <p>สถานภาพนักเรียน: {student.status == "STUDYING" ? "เรียน" : "พ้นสภาพ"}</p>
           <Link to="/bug-report">
-          <button type="submit" className="mt-5 btn w-full text-white bg-[#FF842C] border-none">
-            แจ้งปัญหา
-          </button>
           </Link>
         </div>
       </div>
