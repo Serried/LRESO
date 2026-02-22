@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('../lib/db');
+const dbRaw = require('../lib/db').raw;
 const { requireAuth, requireStudent, requireTeacher, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -76,6 +77,43 @@ router.get('/student/news', requireStudent, async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลประกาศข่าวสาร' });
+  }
+});
+
+router.get('/tickets', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM Ticket WHERE userID = ? ORDER BY createdAt DESC',
+      [req.user.userID]
+    );
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+router.put('/tickets/:id/close', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [rows] = await pool.query(
+      'SELECT ticketID, userID FROM Ticket WHERE ticketID = ? LIMIT 1',
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบคำร้อง' });
+    }
+    if (rows[0].userID !== req.user.userID) {
+      return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์ปิดคำร้องนี้' });
+    }
+    if (rows[0].userID === null) {
+      return res.status(403).json({ success: false, message: 'ไม่สามารถปิดคำร้องที่ส่งโดยไม่เข้าสู่ระบบได้' });
+    }
+    await pool.query('UPDATE Ticket SET status = ? WHERE ticketID = ?', [null, id]);
+    res.json({ success: true, message: 'ยกเลิกคำร้องเรียบร้อยแล้ว' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
   }
 });
 
