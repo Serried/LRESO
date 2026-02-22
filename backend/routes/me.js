@@ -185,7 +185,9 @@ router.delete('/teacher/announcement/:id', requireTeacher, async (req, res) => {
 router.get('/student', requireStudent, async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT s.studentID, s.first_name, s.last_name, s.gender, s.dob, s.tel, s.address, s.status
+      SELECT s.studentID, s.first_name, s.last_name, s.thai_first_name, s.thai_last_name,
+        s.gender, s.dob, s.tel, s.address, s.email, s.status,
+        u.username, u.avatar
       FROM User u
       JOIN Student s ON u.refID = s.studentID
       WHERE u.userID = ?
@@ -275,13 +277,191 @@ router.put('/tickets/:id/close', async (req, res) => {
 router.get('/student/classes', requireStudent, async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT sc.classID, c.className
+      SELECT sc.classID, c.className, c.plan
       FROM User u
       JOIN StudentClass sc ON u.refID = sc.studentID
       JOIN Classroom c ON sc.classID = c.classID
       WHERE u.userID = ?
     `, [req.user.userID]);
     res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
+  }
+});
+
+router.get('/student/subjects', requireStudent, async (req, res) => {
+  try {
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    const [rows] = await pool.query(`
+      SELECT DISTINCT cs.subjectID, s.subjectName, sc.classID, c.className
+      FROM User u
+      JOIN StudentClass sc ON u.refID = sc.studentID
+      JOIN ClassroomSubject cs ON sc.classID = cs.classID AND sc.year = cs.year AND sc.term = cs.term
+      JOIN Subject s ON cs.subjectID = s.subjectID
+      JOIN Classroom c ON sc.classID = c.classID
+      WHERE u.userID = ? AND sc.year = ? AND sc.term = ?
+      ORDER BY s.subjectName
+    `, [req.user.userID, year, term]);
+    res.json({ success: true, data: rows || [] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+router.get('/student/scores', requireStudent, async (req, res) => {
+  try {
+    const subjectID = parseInt(req.query.subjectID, 10);
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    if (isNaN(subjectID)) {
+      return res.status(400).json({ success: false, message: 'subjectID จำเป็น' });
+    }
+    const [classRows] = await pool.query(`
+      SELECT sc.classID, c.className,
+        trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS teacherName
+      FROM User u
+      JOIN StudentClass sc ON u.refID = sc.studentID
+      JOIN Classroom c ON sc.classID = c.classID
+      JOIN ClassroomSubject cs ON sc.classID = cs.classID AND sc.year = cs.year AND sc.term = cs.term AND cs.subjectID = ?
+      LEFT JOIN Teacher t ON cs.teacherID = t.teacherID
+      WHERE u.userID = ? AND sc.year = ? AND sc.term = ?
+    `, [subjectID, req.user.userID, year, term]);
+    if (!classRows || classRows.length === 0) {
+      return res.json({ success: true, data: { subjectName: null, className: null, teacherName: null, components: [], scores: {} } });
+    }
+    let { classID, className, teacherName } = classRows[0];
+    if (!teacherName || !String(teacherName).trim()) {
+      const [scheduleRows] = await pool.query(`
+        SELECT trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS tn
+        FROM ClassSchedule cs
+        LEFT JOIN Teacher t ON cs.teacherID = t.teacherID
+        WHERE cs.classID = ? AND cs.subjectID = ? AND cs.year = ? AND cs.term = ?
+        LIMIT 1
+      `, [classID, subjectID, year, term]);
+      teacherName = scheduleRows?.[0]?.tn || null;
+    }
+    const [[subjectRow]] = await pool.query('SELECT subjectName FROM Subject WHERE subjectID = ?', [subjectID]);
+    const [components] = await pool.query(
+      'SELECT id, name, weight FROM ScoreComponent WHERE classID = ? AND subjectID = ? AND year = ? AND term = ? ORDER BY sortOrder, id',
+      [classID, subjectID, year, term]
+    );
+    const [scoreRows] = await pool.query(
+      'SELECT componentID, score FROM Score WHERE studentID = ? AND classID = ? AND subjectID = ? AND year = ? AND term = ?',
+      [req.user.refID, classID, subjectID, year, term]
+    );
+    const scores = {};
+    for (const r of scoreRows || []) {
+      scores[r.componentID] = r.score;
+    }
+    res.json({
+      success: true,
+      data: {
+        subjectName: subjectRow?.subjectName,
+        className,
+        teacherName: teacherName || null,
+        year,
+        term,
+        components: components || [],
+        scores,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.get('/student/score-stats', requireStudent, async (req, res) => {
+  try {
+    const subjectID = parseInt(req.query.subjectID, 10);
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    if (isNaN(subjectID)) {
+      return res.status(400).json({ success: false, message: 'subjectID จำเป็น' });
+    }
+    const [classRows] = await pool.query(`
+      SELECT sc.classID
+      FROM User u
+      JOIN StudentClass sc ON u.refID = sc.studentID
+      JOIN ClassroomSubject cs ON sc.classID = cs.classID AND sc.year = cs.year AND sc.term = cs.term AND cs.subjectID = ?
+      WHERE u.userID = ? AND sc.year = ? AND sc.term = ?
+    `, [subjectID, req.user.userID, year, term]);
+    if (!classRows || classRows.length === 0) {
+      return res.json({ success: true, data: { totals: [] } });
+    }
+    const { classID } = classRows[0];
+    const [components] = await pool.query(
+      'SELECT id, name, weight FROM ScoreComponent WHERE classID = ? AND subjectID = ? AND year = ? AND term = ? ORDER BY sortOrder, id',
+      [classID, subjectID, year, term]
+    );
+    const [scoreRows] = await pool.query(
+      'SELECT studentID, componentID, score FROM Score WHERE classID = ? AND subjectID = ? AND year = ? AND term = ?',
+      [classID, subjectID, year, term]
+    );
+    const scoresByStudent = {};
+    for (const r of scoreRows || []) {
+      if (!scoresByStudent[r.studentID]) scoresByStudent[r.studentID] = {};
+      scoresByStudent[r.studentID][r.componentID] = r.score;
+    }
+    const totals = [];
+    const weightSum = (components || []).reduce((s, c) => s + c.weight, 0);
+    for (const studentID of Object.keys(scoresByStudent)) {
+      const scores = scoresByStudent[studentID];
+      let weightedSum = 0;
+      let totalWeight = 0;
+      for (const c of components || []) {
+        const val = scores[c.id];
+        if (val != null && !isNaN(parseFloat(val))) {
+          weightedSum += parseFloat(val) * (c.weight / 100);
+          totalWeight += c.weight;
+        }
+      }
+      if (totalWeight > 0) {
+        totals.push(weightedSum);
+      }
+    }
+    res.json({ success: true, data: { totals } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.get('/student/schedule', requireStudent, async (req, res) => {
+  try {
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    const [classRows] = await pool.query(`
+      SELECT sc.classID, c.className, c.plan
+      FROM User u
+      JOIN StudentClass sc ON u.refID = sc.studentID
+      JOIN Classroom c ON sc.classID = c.classID
+      WHERE u.userID = ? AND sc.year = ? AND sc.term = ?
+    `, [req.user.userID, year, term]);
+
+    if (!classRows || classRows.length === 0) {
+      return res.json({ success: true, data: { className: null, plan: null, slots: [] } });
+    }
+
+    const { classID, className, plan } = classRows[0];
+    const [slots] = await pool.query(`
+      SELECT cs.dayOfWeek, cs.period, cs.subjectID, cs.teacherID,
+        s.subjectName,
+        trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS teacherName
+      FROM ClassSchedule cs
+      JOIN Subject s ON cs.subjectID = s.subjectID
+      LEFT JOIN Teacher t ON cs.teacherID = t.teacherID
+      WHERE cs.classID = ? AND cs.year = ? AND cs.term = ?
+      ORDER BY cs.dayOfWeek, cs.period
+    `, [classID, year, term]);
+
+    res.json({
+      success: true,
+      data: { classID, className, plan, year, term, slots: slots || [] },
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'เซิร์ฟเวอร์ขัดข้อง' });
