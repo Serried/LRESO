@@ -46,6 +46,7 @@ function App() {
     {/* student-only */}
     <Route element={<ProtectedRoute allowedRole={['STUDENT']} />}>
       <Route path="/me/help" element={<S_ContactStaff />} />
+      <Route path="/me/score" element={<S_ViewScore />} />
     </Route>
   </Route>
 
