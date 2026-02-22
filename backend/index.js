@@ -9,6 +9,7 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 fs.mkdirSync(path.join(uploadsDir, 'avatars'), { recursive: true });
 fs.mkdirSync(path.join(uploadsDir, 'csv'), { recursive: true });
+fs.mkdirSync(path.join(uploadsDir, 'tickets'), { recursive: true });
 
 const app = express();
 app.use(cors());

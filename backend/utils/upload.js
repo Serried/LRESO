@@ -4,9 +4,11 @@ const multer = require('multer');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'avatars');
 const csvUploadDir = path.join(__dirname, '..', 'uploads', 'csv');
+const ticketDir = path.join(__dirname, '..', 'uploads', 'tickets');
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(csvUploadDir)) fs.mkdirSync(csvUploadDir, { recursive: true });
+if (!fs.existsSync(ticketDir)) fs.mkdirSync(ticketDir, { recursive: true });
 
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
@@ -38,4 +40,21 @@ const uploadCsv = multer({
   }
 });
 
-module.exports = { upload, uploadCsv };
+const ticketStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ticketDir),
+  filename: (req, file, cb) => {
+    const ext = (file.mimetype.match(/\/(jpeg|jpg|png|gif|webp)$/) || ['', 'jpg'])[1];
+    cb(null, `ticket-${Date.now()}.${ext}`);
+  }
+});
+
+const uploadTicketAttachment = multer({
+  storage: ticketStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/image\/(jpeg|jpg|png|gif|webp)/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only images (jpeg, png, gif, webp) allowed'));
+  }
+});
+
+module.exports = { upload, uploadCsv, uploadTicketAttachment };

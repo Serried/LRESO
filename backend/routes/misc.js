@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { uploadTicketAttachment } = require('../utils/upload');
 
 const router = express.Router();
 
@@ -21,6 +22,31 @@ router.get('/time', (req, res) => {
   res.json({ serverTime: new Date().toISOString() });
 });
 
+router.post('/ticket', optionalAuth, uploadTicketAttachment.single('attachment'), async (req, res) => {
+  try {
+    const { type, topic, content } = req.body || {};
+    if (!topic || !String(topic).trim()) {
+      return res.status(400).json({ success: false, message: 'กรุณาระบุหัวข้อ' });
+    }
+    const attachmentPath = req.file ? `tickets/${req.file.filename}` : null;
+    await pool.query(
+      `INSERT INTO Ticket (type, topic, content, userID, status, attachment)
+       VALUES (?, ?, ?, ?, 'OPEN', ?)`,
+      [
+        (type || '').trim() || null,
+        (topic || '').trim(),
+        (content || '').trim(),
+        req.user?.userID ?? null,
+        attachmentPath
+      ]
+    );
+    res.json({ success: true, message: 'ส่งคำร้องเรียบร้อยแล้ว' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 router.get('/subjects/group-names', requireAuth, async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -33,20 +59,5 @@ router.get('/subjects/group-names', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/subjects/add-subject', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const {
-      
-    } = req.body
-    await pool.query(
-      `
-      INSERT INTO
-      `
-    )
-  } catch(e) {
-    console.error(e)
-    res.status(500).json({success: false, message: e.message})
-  }
-})
 
 module.exports = router;
