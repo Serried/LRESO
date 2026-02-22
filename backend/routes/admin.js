@@ -210,4 +210,154 @@ router.post('/students', upload.single('avatar'), async (req, res) => {
   }
 });
 
+router.get('/classrooms', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT c.*,
+        trim(coalesce(t.thai_first_name, '') || ' ' || coalesce(t.thai_last_name, '')) AS responsibleTeacherName
+      FROM Classroom c
+      LEFT JOIN Teacher t ON c.responsibleTeacherID = t.teacherID
+      ORDER BY c.className
+    `);
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+router.get('/classrooms/:classID/students', async (req, res) => {
+  try {
+    const classID = parseInt(req.params.classID, 10);
+    if (isNaN(classID)) return res.status(400).json({ success: false, message: 'Invalid classID' });
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    const [rows] = await pool.query(`
+      SELECT s.studentID, s.first_name, s.last_name, s.thai_first_name, s.thai_last_name, u.username AS studentCode, s.gender
+      FROM StudentClass sc
+      JOIN Student s ON sc.studentID = s.studentID
+      JOIN User u ON u.refID = s.studentID AND u.role = 'STUDENT'
+      WHERE sc.classID = ? AND sc.year = ? AND sc.term = ?
+      ORDER BY u.username
+    `, [classID, year, term]);
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.post('/classroom/create', express.json(), async (req, res) => {
+  try {
+    const { className, plan, responsibleTeacherID } = req.body;
+    if (!className) return res.status(400).json({ success: false, message: 'กรุณาระบุชื่อห้อง' });
+    const teacherId = responsibleTeacherID ? parseInt(responsibleTeacherID, 10) : null;
+    const [result] = await pool.query(
+      'INSERT INTO Classroom (className, plan, responsibleTeacherID) VALUES (?, ?, ?)',
+      [className.trim(), plan || null, teacherId]
+    );
+    res.json({ success: true, message: 'สร้างห้องเรียนสำเร็จ', classID: result.insertId });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.put('/classrooms/remove-student', express.json(), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const studentID = Number(body.studentID ?? body.StudentID);
+    const classID = Number(body.classID ?? body.ClassID);
+    if (!Number.isInteger(studentID) || !Number.isInteger(classID) || studentID < 1 || classID < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'studentID and classID required (positive integers)',
+      });
+    }
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    await pool.query(
+      'DELETE FROM StudentClass WHERE studentID = ? AND classID = ? AND year = ? AND term = ?',
+      [studentID, classID, year, term]
+    );
+    res.json({ success: true, message: 'เอานักเรียนออกจากห้องเรียนสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.put('/classrooms/:id', express.json(), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'Invalid classID' });
+    const { className, plan, responsibleTeacherID } = req.body;
+    if (!className) return res.status(400).json({ success: false, message: 'กรุณาระบุชื่อห้อง' });
+    const teacherId = (responsibleTeacherID != null && responsibleTeacherID !== '') ? parseInt(responsibleTeacherID, 10) : null;
+    await pool.query('UPDATE Classroom SET className = ?, plan = ?, responsibleTeacherID = ? WHERE classID = ?', [className.trim(), plan || null, teacherId, id]);
+    res.json({ success: true, message: 'อัปเดตห้องเรียนสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.delete('/classrooms/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'Invalid classID' });
+    await pool.query('DELETE FROM Classroom WHERE classID = ?', [id]);
+    res.json({ success: true, message: 'ลบห้องเรียนสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+function parseStudentUsernames(body) {
+  const { usernames } = body;
+  if (!Array.isArray(usernames) || usernames.length === 0) return [];
+  return usernames.map((u) => String(u).trim()).filter((u) => u.length > 0);
+}
+
+router.put('/classrooms/:classID/add-student', async (req, res) => {
+  try {
+    const classID = parseInt(req.params.classID, 10);
+    const usernames = parseStudentUsernames(req.body);
+    if (isNaN(classID) || usernames.length === 0) {
+      return res.status(400).json({ success: false, message: 'classID and usernames required' });
+    }
+    const [userRows] = await pool.query(
+      "SELECT username, refID as studentID FROM User WHERE role = 'STUDENT' AND username IN (" + usernames.map(() => '?').join(',') + ")",
+      usernames
+    );
+    const usernameToStudentId = new Map(userRows.map((r) => [r.username, r.studentID]));
+    const foundUsernames = userRows.map((r) => r.username);
+    const notFound = usernames.filter((u) => !usernameToStudentId.has(u));
+    const toAdd = foundUsernames.map((u) => usernameToStudentId.get(u));
+
+    const year = new Date().getFullYear() + 543;
+    const term = 1;
+    for (const studentID of toAdd) {
+      // ถ้านักเรียนอยู่ใน class นึงอยู่่แล้ว แล้วไปเพิ่มอีก class จะเป็นเหมือนการย้ายแทน (ลบจาก class เดิมไปเพิ่มใน class ใหม่)
+      await pool.query(
+        'DELETE FROM StudentClass WHERE studentID = ? AND year = ? AND term = ?',
+        [studentID, year, term]
+      );
+      await pool.query(
+        'INSERT INTO StudentClass (studentID, classID, year, term) VALUES (?, ?, ?, ?)',
+        [studentID, classID, year, term]
+      );
+    }
+    res.json({
+      success: true,
+      message: `เพิ่มนักเรียนเข้าห้องเรียนสำเร็จ (${toAdd.length} คน)`,
+      addedCount: toAdd.length,
+      notFound: notFound,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 module.exports = router;

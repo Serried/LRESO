@@ -20,6 +20,7 @@ import T_ManageScore from './components/T_ManageScore.jsx'
 import T_News from './components/T_News.jsx'
 import T_Schedule from './components/T_Schedule.jsx'
 import RoleBasedRoute from './components/RoleBasedRoute.jsx'
+import A_ManageClassroom from './components/A_ManageClassroom.jsx'
 
 function App() {
 
@@ -70,6 +71,9 @@ function App() {
   </Route>
   <Route element={<ProtectedRoute allowedRole={['ADMIN']} />}>
     <Route path="/me/manage-reports" element={<A_ManageReport />} />
+  </Route>
+  <Route element={<ProtectedRoute allowedRole={['ADMIN'] }/>}>
+  <Route path='/me/manage-classroom' element={<A_ManageClassroom />}></Route>
   </Route>
 </Routes>
 
