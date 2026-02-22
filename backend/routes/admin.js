@@ -512,4 +512,94 @@ router.put('/classrooms/:classID/add-student', async (req, res) => {
       res.status(500).json({ success: false, message: e.message });
     }
   });
+router.get('/announcements', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT a.*, u.thai_first_name, u.thai_last_name, u.role, u.avatar
+      FROM Announcement a
+      LEFT JOIN User u ON a.createdBy = u.userID
+      ORDER BY a.isPinned DESC, a.createdAt DESC
+    `);
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.post('/announcement/add', requireAdmin, requireAuth, async(req, res) => {
+  try {
+    let {
+      title, content, targetRole, expireAt, category, isPinned
+    } = req.body;
+    const expireAtVal = (expireAt && String(expireAt).trim()) ? expireAt : null;
+    const isPinnedVal = isPinned ? 1 : 0;
+    const titleVal = title ?? '';
+    const contentVal = content ?? '';
+    const targetRoleVal = targetRole ?? 'ALL';
+    const categoryVal = category ?? 'GENERAL';
+    await pool.query(
+      `
+      INSERT INTO Announcement (title, content, createdBy, targetRole, expireAt, category, isPinned)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [titleVal, contentVal, req.user.userID, targetRoleVal, expireAtVal, categoryVal, isPinnedVal]
+    )
+    res.json({ success: true, message: 'สร้างประกาศสำเร็จ' })
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message});
+  }
+});
+
+router.put('/announcement/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [rows] = await pool.query(
+      'SELECT createdBy FROM Announcement WHERE announceID = ? LIMIT 1',
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบประกาศ' });
+    }
+    const row = rows[0];
+    if (row.createdBy !== req.user.userID) {
+      return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์แก้ไขประกาศนี้' });
+    }
+    let {
+      title, content, targetRole, expireAt, category, isPinned
+    } = req.body;
+    const expireAtVal = (expireAt && String(expireAt).trim()) ? expireAt : null;
+    const isPinnedVal = isPinned ? 1 : 0;
+    const titleVal = title ?? '';
+    const contentVal = content ?? '';
+    const targetRoleVal = targetRole ?? 'ALL';
+    const categoryVal = category ?? 'GENERAL';
+    await pool.query(
+      `UPDATE Announcement SET title = ?, content = ?, targetRole = ?, expireAt = ?, category = ?, isPinned = ? WHERE announceID = ?`,
+      [titleVal, contentVal, targetRoleVal, expireAtVal, categoryVal, isPinnedVal, id]
+    );
+    res.json({ success: true, message: 'แก้ไขประกาศสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.delete('/announcement/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [rows] = await pool.query(
+      'SELECT announceID FROM Announcement WHERE announceID = ? LIMIT 1',
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'ไม่พบประกาศ' });
+    }
+    await pool.query('DELETE FROM Announcement WHERE announceID = ?', [id]);
+    res.json({ success: true, message: 'ลบประกาศสำเร็จ' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
 module.exports = router;
