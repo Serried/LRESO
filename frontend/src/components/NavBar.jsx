@@ -1,15 +1,16 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function NavBar() {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const dashboardPath = user.role === 'ADMIN' ? '/me/admin' : user.role === 'TEACHER' ? '/me/teacher' : user.role === 'STUDENT' ? '/me/student' : '/';
 
   const handleLogOut = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login")
   }
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const displayName = (user.thai_first_name || user.thai_last_name)
     ? `${user.thai_first_name || ''} ${user.thai_last_name || ''}`.trim()
     : (user.first_name || user.last_name)
@@ -22,9 +23,16 @@ function NavBar() {
     <>
     <nav>
     <div className='w-full h-15 bg-[#ff842c] flex justify-between items-center'>
-    <div id="left" className='items-center flex flex-row'>
-        <img className='rounded-full w-[45px] h-[45px] object-cover mx-5' src="https://placehold.co/45" alt="school logo"></img>
-        <p className='text-xl text-white font-semibold'>โรงเรียนลังกระบาด</p>
+    <div id="left" className='items-center flex flex-row gap-4'>
+        <Link to={dashboardPath} className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+          <img className='rounded-full w-[45px] h-[45px] object-cover mx-5' src="/kmitl.svg" alt="school logo"></img>
+          <p className='text-xl text-white font-semibold'>ระบบบริหารจัดการข้อมูลโรงเรียนคลาสโซลา</p>
+        </Link>
+        {user.id && (
+          <Link to={dashboardPath} className="text-white/90 hover:text-white text-sm font-medium px-3 py-1.5 rounded hover:bg-white/10 transition-colors">
+            ← กลับหน้าแรก
+          </Link>
+        )}
     </div>
     {user.id && (
       <div id="right" className="flex items-center gap-2 pr-4">
