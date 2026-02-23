@@ -217,11 +217,11 @@ function BugReport() {
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">แนบรูปภาพ (ไม่บังคับ)</span>
+                  <span className="label-text">แนบไฟล์ (รองรับ: .jpeg, .jpg, .png, .gif, .webp, .pdf)</span>
                 </label>
                 <input
                   type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
                   onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
                   className="file-input file-input-bordered w-full"
                 />

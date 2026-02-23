@@ -398,7 +398,7 @@ function A_ManageReport() {
               </p>
               {selectedTicket.attachment && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-600 mb-2">รูปแนบ</p>
+                  <p className="text-sm font-medium text-gray-600 mb-2">ไฟล์ที่แนบ</p>
                   <a
                     href={`/uploads/${selectedTicket.attachment}`}
                     target="_blank"
@@ -407,7 +407,7 @@ function A_ManageReport() {
                   >
                     <img
                       src={`/uploads/${selectedTicket.attachment}`}
-                      alt="รูปแนบ"
+                      alt={`${selectedTicket.attachment}`}
                       className="max-w-full max-h-64 object-contain rounded-lg border"
                     />
                   </a>

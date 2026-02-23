@@ -7,6 +7,7 @@ const dirs = { avatars: path.join(__dirname, '..', 'uploads', 'avatars'), csv: p
 Object.values(dirs).forEach(mk);
 
 const imgFilter = (_, file, cb) => (/image\/(jpeg|jpg|png|gif|webp)/.test(file.mimetype) ? cb(null, true) : cb(new Error('Only images allowed')));
+const imgOrPdfFilter = (_, file, cb) => (/image\/(jpeg|jpg|png|gif|webp)|application\/pdf/.test(file.mimetype) ? cb(null, true) : cb(new Error('Only images or PDF allowed')));
 const ext = (m) => (m.match(/\/(jpeg|jpg|png|gif|webp)$/) || ['', 'jpg'])[1];
 
 const upload = multer({
@@ -21,10 +22,11 @@ const uploadCsv = multer({
   fileFilter: (_, f, cb) => (/^text\/(csv|plain)$|application\/csv/.test(f.mimetype) || /\.csv$/i.test(f.originalname)) ? cb(null, true) : cb(new Error('Only CSV allowed')),
 });
 
+const ticketExt = (m) => (m === 'application/pdf' ? 'pdf' : (m.match(/\/(jpeg|jpg|png|gif|webp)$/) || ['', 'jpg'])[1]);
 const uploadTicketAttachment = multer({
-  storage: multer.diskStorage({ destination: (_, __, cb) => cb(null, dirs.tickets), filename: (_, f, cb) => cb(null, `ticket-${Date.now()}.${ext(f.mimetype)}`) }),
+  storage: multer.diskStorage({ destination: (_, __, cb) => cb(null, dirs.tickets), filename: (_, f, cb) => cb(null, `ticket-${Date.now()}.${ticketExt(f.mimetype)}`) }),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imgFilter,
+  fileFilter: imgOrPdfFilter,
 });
 
 module.exports = { upload, uploadCsv, uploadTicketAttachment };
