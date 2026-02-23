@@ -31,7 +31,7 @@ router.post('/teachers', upload.single('avatar'), handle(async (req, res) => {
   );
   const uname = tn(first_name, last_name);
   await pool.query(
-    "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,?,'TEACHER',?,'ACTIVE',?,?,?,?,datetime('now'))",
+    "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,'TEACHER',?,'ACTIVE',?,?,?,?,datetime('now'))",
     [uname, hash, tid, `avatars/${req.file.filename}`, n(thai_first_name), n(thai_last_name), n(gender)]
   );
   res.json({ success: true, message: `สร้างบัญชี (ครูผู้สอน) - ${uname}:${pw} สำเร็จ!`, password: pw });
@@ -51,7 +51,7 @@ router.post('/teachers/csv', uploadCsv.single('csv'), handle(async (req, res) =>
     );
     const uname = tn(first_name, last_name);
     await pool.query(
-      "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,?,'TEACHER',?,'ACTIVE','avatars/avatar-placeholder.jpg',?,?,?,datetime('now'))",
+      "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,'TEACHER',?,'ACTIVE','avatars/avatar-placeholder.jpg',?,?,?,datetime('now'))",
       [uname, hash, tid, n(thai_first_name), n(thai_last_name), n(gender)]
     );
     created.push({ username: uname, password: pw });
@@ -88,7 +88,7 @@ router.post('/students/csv', uploadCsv.single('csv'), handle(async (req, res) =>
     );
     const uname = await createStudentUsername(pool);
     await pool.query(
-      "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,?,'STUDENT',?,'ACTIVE','avatars/avatar-placeholder.jpg',?,?,?,datetime('now'))",
+      "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,'STUDENT',?,'ACTIVE','avatars/avatar-placeholder.jpg',?,?,?,datetime('now'))",
       [uname, hash, sid, n(thai_first_name), n(thai_last_name), n(gender)]
     );
     created.push({ username: uname, password: pw });
@@ -107,7 +107,7 @@ router.post('/students', upload.single('avatar'), handle(async (req, res) => {
   );
   const uname = await createStudentUsername(pool);
   await pool.query(
-    "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,?,'STUDENT',?,'ACTIVE',?,?,?,?,datetime('now'))",
+    "INSERT INTO User (username, password_hash, role, refID, status, avatar, thai_first_name, thai_last_name, gender, createdAt) VALUES (?,?,'STUDENT',?,'ACTIVE',?,?,?,?,datetime('now'))",
     [uname, hash, sid, `avatars/${req.file.filename}`, n(b.thai_first_name), n(b.thai_last_name), n(b.gender)]
   );
   res.json({ success: true, message: `สร้างบัญชี (นักเรียน) - ${uname}:${pw} สำเร็จ!`, password: pw });
