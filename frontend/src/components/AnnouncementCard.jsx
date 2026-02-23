@@ -73,7 +73,7 @@ function AnnouncementCard({
   return (
     <div
       className={`
-        flex flex-col gap-3 p-5 rounded-xl border shadow-sm
+        flex flex-col gap-3 p-5 rounded-xl border shadow-sm min-w-0 overflow-hidden
         ${isPinned ? "bg-yellow-50 border-yellow-400" : "bg-white border-gray-200"}
       `}
     >
@@ -85,8 +85,8 @@ function AnnouncementCard({
             alt=""
             className="w-12 h-12 rounded-full object-cover"
           />
-          <div>
-            <p className="font-semibold text-gray-800">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className="font-semibold text-gray-800 truncate">
               {authorName || "ผู้ดูแลระบบ"}
             </p>
             <span className="text-xs px-2 py-0.5 rounded bg-orange-500 text-white">
@@ -107,19 +107,19 @@ function AnnouncementCard({
       </div>
 
       {/* CATEGORY + TITLE */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap min-w-0">
         <span
-          className={`text-xs px-2 py-0.5 rounded ${categoryColor(category)}`}
+          className={`text-xs px-2 py-0.5 rounded shrink-0 ${categoryColor(category)}`}
         >
           {categoryLabel(category)}
         </span>
-        <p className="font-semibold text-gray-800">
+        <p className="font-semibold text-gray-800 break-words min-w-0 flex-1">
           {title || "หัวข้อประกาศ"}
         </p>
       </div>
 
       {/* CONTENT */}
-      <p className="text-sm text-gray-600 whitespace-pre-wrap">
+      <p className="text-sm text-gray-600 whitespace-pre-wrap break-words overflow-hidden min-w-0">
         {content || "รายละเอียดประกาศจะแสดงที่นี่"}
       </p>
     </div>

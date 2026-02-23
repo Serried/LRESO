@@ -256,7 +256,7 @@ function T_News() {
             </div>
 
             {/* preview */}
-            <div className="bg-white border rounded-xl p-5 shadow">
+            <div className="bg-white border rounded-xl p-5 shadow min-w-0 overflow-hidden">
               <h2 className="font-semibold mb-3">ตัวอย่างการแสดงผล</h2>
               <AnnouncementCard
                 title={title}
