@@ -144,7 +144,7 @@ function A_ManageReport() {
   const submitterDisplay = (r) => {
     const name = submitterName(r);
     const prefix = r.gender === "M" ? "นาย" : r.gender === "F" ? "นางสาว" : "";
-    return prefix ? `${prefix} ${name}` : name;
+    return prefix ? `${prefix}${name}` : name;
   };
 
   const filtered = tickets.filter((r) => {

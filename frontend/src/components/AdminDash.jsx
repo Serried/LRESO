@@ -30,7 +30,7 @@ export default function AdminDash() {
   const profile = (
     <>
       <div className="mt-42"><img src={avatarUrl} alt="" className="rounded-full w-3xs" /></div>
-      <p className="text-2xl font-bold mt-5">{user.gender === 'M' ? 'นาย' : 'นางสาว'} {name(user)}</p>
+      <p className="text-2xl font-bold mt-5">{user.gender === 'M' ? 'นาย' : 'นางสาว'}{name(user)}</p>
       <p className="text-gray-600">ผู้ดูแลระบบ</p>
     </>
   );
