@@ -29,6 +29,12 @@ const deleteAvatarIfUploaded = (avatarPath) => {
   } catch (_) { /* ignore */ }
 };
 
+const isTeacherResigned = async (tid) => {
+  if (!tid) return false;
+  const [[r]] = await pool.query('SELECT status FROM Teacher WHERE teacherID = ?', [tid]);
+  return r?.status === 'RESIGNED';
+};
+
 // เช็คว่าวันเกิดอยู่เกินวันที่ปัจจุบันไหม
 const isFutureDob = (dob) => {
   if (!dob || !String(dob).trim()) return false;
@@ -201,7 +207,9 @@ router.get('/classrooms/:classID/students', handle(async (req, res) => {
 router.post('/classroom/create', express.json(), handle(async (req, res) => {
   const { className, plan, responsibleTeacherID } = req.body || {};
   if (!className) return bad(res, 'กรุณาระบุชื่อห้อง');
-  const [{ insertId: classID }] = await pool.query('INSERT INTO Classroom (className, plan, responsibleTeacherID) VALUES (?,?,?)', [className.trim(), n(plan), responsibleTeacherID ? parseInt(responsibleTeacherID, 10) : null]);
+  const tid = responsibleTeacherID ? parseInt(responsibleTeacherID, 10) : null;
+  if (tid && await isTeacherResigned(tid)) return bad(res, 'ไม่สามารถกำหนดครูที่ลาออกแล้วเป็นครูประจำชั้นได้');
+  const [{ insertId: classID }] = await pool.query('INSERT INTO Classroom (className, plan, responsibleTeacherID) VALUES (?,?,?)', [className.trim(), n(plan), tid]);
   res.json({ success: true, message: 'สร้างห้องเรียนสำเร็จ', classID });
 }));
 
@@ -220,6 +228,7 @@ router.put('/classrooms/:id', express.json(), handle(async (req, res) => {
   const { className, plan, responsibleTeacherID } = req.body || {};
   if (!className) return bad(res, 'กรุณาระบุชื่อห้อง');
   const tid = (responsibleTeacherID != null && responsibleTeacherID !== '') ? parseInt(responsibleTeacherID, 10) : null;
+  if (tid && await isTeacherResigned(tid)) return bad(res, 'ไม่สามารถกำหนดครูที่ลาออกแล้วเป็นครูประจำชั้นได้');
   await pool.query('UPDATE Classroom SET className = ?, plan = ?, responsibleTeacherID = ? WHERE classID = ?', [className.trim(), n(plan), tid, id]);
   ok(res, null, 'อัปเดตห้องเรียนสำเร็จ');
 }));
@@ -237,18 +246,24 @@ router.put('/classrooms/:classID/add-student', handle(async (req, res) => {
   const cid = parseInt(req.params.classID, 10), usernames = parseUsernames(req.body);
   if (isNaN(cid) || !usernames.length) return bad(res, 'classID and usernames required');
   const [userRows] = await pool.query(
-    "SELECT username, refID as studentID FROM User WHERE role = 'STUDENT' AND username IN (" + usernames.map(() => '?').join(',') + ")",
+    `SELECT u.username, u.refID as studentID, s.status as studentStatus
+     FROM User u
+     JOIN Student s ON s.studentID = u.refID
+     WHERE u.role = 'STUDENT' AND u.username IN (${usernames.map(() => '?').join(',')})`,
     usernames
   );
-  const map = new Map(userRows.map((r) => [r.username, r.studentID]));
-  const toAdd = usernames.filter((u) => map.has(u)).map((u) => map.get(u));
+  const map = new Map(userRows.map((r) => [r.username, { studentID: r.studentID, status: r.studentStatus }]));
   const notFound = usernames.filter((u) => !map.has(u));
+  const graduated = usernames.filter((u) => map.has(u) && map.get(u).status === 'GRADUATED');
+  const toAdd = usernames.filter((u) => map.has(u) && map.get(u).status !== 'GRADUATED').map((u) => map.get(u).studentID);
   const { year, term } = yt();
   for (const sid of toAdd) {
     await pool.query('DELETE FROM StudentClass WHERE studentID = ? AND year = ? AND term = ?', [sid, year, term]);
     await pool.query('INSERT INTO StudentClass (studentID, classID, year, term) VALUES (?,?,?,?)', [sid, cid, year, term]);
   }
-  res.json({ success: true, message: `เพิ่มนักเรียนเข้าห้องเรียนสำเร็จ (${toAdd.length} คน)`, addedCount: toAdd.length, notFound });
+  let message = `เพิ่มนักเรียนเข้าห้องเรียนสำเร็จ (${toAdd.length} คน)`;
+  if (graduated.length) message += `. ไม่สามารถเพิ่มผู้ที่จบการศึกษาแล้ว: ${graduated.join(', ')}`;
+  res.json({ success: true, message, addedCount: toAdd.length, notFound, graduated });
 }));
 
 router.post('/subjects/add-subject', handle(async (req, res) => {
@@ -268,6 +283,7 @@ router.post('/subjects/add-subject', handle(async (req, res) => {
   }
   if (!sid || isNaN(sid)) return bad(res, 'ไม่พบวิชา');
   const tid = b.teacherID ? parseInt(b.teacherID, 10) : null;
+  if (tid && await isTeacherResigned(tid)) return bad(res, 'ไม่สามารถกำหนดครูที่ลาออกแล้วเป็นผู้สอนได้');
   let inserted = 0;
   for (const cid of classIds.map((x) => parseInt(x, 10)).filter((x) => !isNaN(x))) {
     try {
@@ -336,6 +352,10 @@ router.put('/classrooms/:classID/schedule', express.json(), handle(async (req, r
       const [[n]] = await pool.query('SELECT subjectName FROM Subject WHERE subjectID = ?', [row.subjectID]);
       return bad(res, `รายวิชา "${n?.subjectName || row.subjectID}" ใช้ชั่วโมง (${h}) เกินหน่วยกิต (${cr})`);
     }
+  }
+  const teacherIds = [...new Set(slots.map((s) => s.teacherID != null ? parseInt(s.teacherID, 10) : null).filter((x) => x != null && !isNaN(x)))];
+  for (const tid of teacherIds) {
+    if (await isTeacherResigned(tid)) return bad(res, 'ไม่สามารถกำหนดครูที่ลาออกแล้วในตารางเรียนได้');
   }
   dbRaw.exec('BEGIN TRANSACTION');
   try {

@@ -618,7 +618,7 @@ function A_ManageSubject() {
               <label className="block text-sm font-medium text-gray-600 mb-1">ครูผู้สอน</label>
               <select value={form.teacherID} onChange={(e) => setForm({ ...form, teacherID: e.target.value })} className="border p-2 w-full rounded">
                 <option value="">-- เลือกครู --</option>
-                {teachers.map((t) => (
+                {teachers.filter((t) => t.status !== "RESIGNED").map((t) => (
                   <option key={t.teacherID} value={t.teacherID}>
                     {t.thai_first_name || t.thai_last_name ? `${t.thai_first_name || ""} ${t.thai_last_name || ""}`.trim() : `${t.first_name || ""} ${t.last_name || ""}`.trim() || `ครู ID ${t.teacherID}`}
                   </option>

@@ -201,7 +201,10 @@ function A_ManageClassroom() {
       if (data.success) {
         setStudentInput("");
         fetchClassStudents(editingID);
-        if (data.notFound && data.notFound.length > 0) {
+        if (data.graduated && data.graduated.length > 0) {
+          setToastMsg(`ไม่สามารถเพิ่มผู้ที่จบการศึกษาแล้ว: ${data.graduated.join(", ")}`);
+          setTimeout(() => setToastMsg(null), 5000);
+        } else if (data.notFound && data.notFound.length > 0) {
           setToastMsg(`ไม่พบชื่อผู้ใช้ในระบบ: ${data.notFound.join(", ")}`);
           setTimeout(() => setToastMsg(null), 5000);
         }
@@ -291,7 +294,7 @@ function A_ManageClassroom() {
 
             <select value={form.responsibleTeacherID} onChange={(e) => setForm({ ...form, responsibleTeacherID: e.target.value })} className="w-full border rounded px-3 py-2">
               <option value="">ครูประจำชั้น</option>
-              {teachers.map((t) => (
+              {teachers.filter((t) => t.status !== "RESIGNED").map((t) => (
                 <option key={t.teacherID} value={t.teacherID}>
                   {t.thai_first_name || t.thai_last_name ? `${t.thai_first_name || ""} ${t.thai_last_name || ""}`.trim() : `${t.first_name || ""} ${t.last_name || ""}`.trim() || `ครู ID ${t.teacherID}`}
                 </option>
