@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const DASH = { ADMIN: '/me/admin', TEACHER: '/me/teacher', STUDENT: '/me/student' };
 
@@ -8,6 +8,7 @@ export default function NavBar() {
   const path = DASH[user.role] || '/';
   const name = [user.thai_first_name, user.thai_last_name].filter(Boolean).join(' ') || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'ผู้ใช้';
   const avatar = user.avatar ? `/uploads/${user.avatar}` : 'https://placehold.co/45';
+  const location = useLocation();
 
   return (
     <nav>
@@ -17,7 +18,7 @@ export default function NavBar() {
             <img className="rounded-full w-[45px] h-[45px] object-cover mx-5" src="/kmitl.svg" alt="school" />
             <p className="text-xl text-white font-semibold">ระบบบริหารจัดการข้อมูลโรงเรียนคลาสโซลา</p>
           </Link>
-          {user.id && <Link to={path} className="text-white/90 hover:text-white text-sm font-medium px-3 py-1.5 rounded hover:bg-white/10">← กลับหน้าแรก</Link>}
+          {location.pathname !== path && user.id && <Link to={path} className="text-white/90 hover:text-white text-sm font-medium px-3 py-1.5 rounded hover:bg-white/10">← กลับหน้าแรก</Link>}
         </div>
         {user.id && (
           <div className="flex items-center gap-2 pr-4">
