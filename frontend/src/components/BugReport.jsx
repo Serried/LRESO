@@ -45,13 +45,14 @@ function BugReport() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (!reportType || !topic.trim()) return;
     setSubmitting(true);
+    if (!content) return;
     try {
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("topic", topic.trim());
-      if (reportType) formData.append("type", reportType);
+      formData.append("type", reportType);
       formData.append("content", content.trim());
       if (attachmentFile) formData.append("attachment", attachmentFile);
 
@@ -173,12 +174,13 @@ function BugReport() {
             >
               <div>
                 <label className="label">
-                  <span className="label-text">ประเภทคำร้อง</span>
+                  <span className="label-text">ประเภทคำร้อง <span className="text-red-500">*</span></span>
                 </label>
                 <select
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
                   className="select select-bordered w-full"
+                  required
                 >
                   {REPORT_TYPE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -189,7 +191,7 @@ function BugReport() {
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">หัวข้อ *</span>
+                  <span className="label-text">หัวข้อ <span className="text-red-500">*</span></span>
                 </label>
                 <input
                   type="text"
@@ -202,10 +204,11 @@ function BugReport() {
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">รายละเอียด</span>
+                  <span className="label-text">รายละเอียด <span className="text-red-500">*</span></span>
                 </label>
                 <textarea
                   value={content}
+                  required
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="อธิบายปัญหาหรือข้อเสนอแนะ"
                   className="textarea textarea-bordered w-full"
