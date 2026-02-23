@@ -18,12 +18,24 @@ const tn = (f, l) => (f && l ? `${String(f).trim().toLowerCase()}.${String(l).tr
 // null coalescing
 const n = (x) => x ?? null;
 
+// เช็คว่าวันเกิดอยู่เกินวันที่ปัจจุบันไหม
+const isFutureDob = (dob) => {
+  if (!dob || !String(dob).trim()) return false;
+  const parts = String(dob).trim().split(/[-/]/);
+  let y = parseInt(parts[0], 10);
+  if (isNaN(y)) return false;
+  if (y > 2400) y -= 543;
+  const date = new Date(y, (parseInt(parts[1], 10) || 1) - 1, parseInt(parts[2], 10) || 1);
+  return date > new Date();
+};
+
 router.get('/get-teachers', handle(async (_, res) => { const [r] = await pool.query('SELECT * FROM Teacher'); ok(res, r); }));
 
 router.post('/teachers', upload.single('avatar'), handle(async (req, res) => {
   const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department } = req.body || {};
   if (!first_name || !last_name || !email) return bad(res, 'English first name, last name, and email required');
   if (!req.file) return bad(res, 'กรุณาอัพโหลดรูปโปรไฟล์');
+  if (isFutureDob(dob)) return bad(res, 'วันเดือนปีเกิดไม่สามารถเป็นวันในอนาคตได้');
   const pw = generatePassword(), hash = await bcrypt.hash(pw, 10);
   const [{ insertId: tid }] = await pool.query(
     'INSERT INTO Teacher (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department, status) VALUES (?,?,?,?,?,?,?,?,?,?)',
@@ -44,6 +56,7 @@ router.post('/teachers/csv', uploadCsv.single('csv'), handle(async (req, res) =>
   for (const r of rows) {
     const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department } = r;
     if (!first_name || !last_name || !email) continue;
+    if (isFutureDob(dob)) continue; // ถ้าใน CSV วันเกิด > เวลาปัจจุบันจะข้ามไป
     const pw = generatePassword(), hash = await bcrypt.hash(pw, 10);
     const [{ insertId: tid }] = await pool.query(
       'INSERT INTO Teacher (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, email, department, status) VALUES (?,?,?,?,?,?,?,?,?,?)',
@@ -63,6 +76,7 @@ router.put('/teachers/:id', express.json(), handle(async (req, res) => {
   const tid = parseInt(req.params.id, 10);
   if (isNaN(tid)) return bad(res, 'Invalid teacher ID');
   const b = req.body || {};
+  if (isFutureDob(b.dob)) return bad(res, 'วันเดือนปีเกิดไม่สามารถเป็นวันในอนาคตได้');
   await pool.query(
     'UPDATE Teacher SET first_name=?, last_name=?, thai_first_name=?, thai_last_name=?, gender=?, dob=?, tel=?, email=?, department=?, status=? WHERE teacherID=?',
     [n(b.first_name), n(b.last_name), n(b.thai_first_name), n(b.thai_last_name), n(b.gender), n(b.dob), n(b.tel), n(b.email), n(b.department), n(b.status), tid]
@@ -81,6 +95,7 @@ router.post('/students/csv', uploadCsv.single('csv'), handle(async (req, res) =>
   for (const r of rows) {
     const { first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, adress, email } = r;
     if (!first_name || !last_name) continue;
+    if (isFutureDob(dob)) continue; // ถ้า dob ไม่ถูกจะ skip]
     const pw = generatePassword(), hash = await bcrypt.hash(pw, 10);
     const [{ insertId: sid }] = await pool.query(
       'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, email, status) VALUES (?,?,?,?,?,?,?,?,?,?)',
@@ -100,6 +115,7 @@ router.post('/students', upload.single('avatar'), handle(async (req, res) => {
   const b = req.body || {};
   if (!b.first_name || !b.last_name) return bad(res, 'กรุณากรอกชื่อ-นามสกุล (English) ให้ครบ');
   if (!req.file) return bad(res, 'กรุณาอัพโหลดรูปโปรไฟล์');
+  if (isFutureDob(b.dob)) return bad(res, 'วันเดือนปีเกิดไม่สามารถเป็นวันในอนาคตได้');
   const pw = generatePassword(), hash = await bcrypt.hash(pw, 10);
   const [{ insertId: sid }] = await pool.query(
     'INSERT INTO Student (first_name, last_name, thai_first_name, thai_last_name, gender, dob, tel, address, email, status) VALUES (?,?,?,?,?,?,?,?,?,?)',
@@ -129,6 +145,7 @@ router.put('/students/:id', express.json(), handle(async (req, res) => {
   const sid = parseInt(req.params.id, 10);
   if (isNaN(sid)) return bad(res, 'Invalid student ID');
   const b = req.body || {};
+  if (isFutureDob(b.dob)) return bad(res, 'วันเดือนปีเกิดไม่สามารถเป็นวันในอนาคตได้');
   await pool.query('UPDATE Student SET first_name=?, last_name=?, thai_first_name=?, thai_last_name=?, gender=?, dob=?, tel=?, address=?, email=?, status=? WHERE studentID=?',
     [n(b.first_name), n(b.last_name), n(b.thai_first_name), n(b.thai_last_name), n(b.gender), n(b.dob), n(b.tel), n(b.address), n((b.email || '').trim()), n(b.status), sid]);
   await pool.query("UPDATE User SET thai_first_name=?, thai_last_name=?, gender=? WHERE refID=? AND role='STUDENT'", [n(b.thai_first_name), n(b.thai_last_name), n(b.gender), sid]);
