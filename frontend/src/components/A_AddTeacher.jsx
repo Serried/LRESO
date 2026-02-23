@@ -523,49 +523,49 @@ function A_AddTeacher() {
             <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลครู</h2>
             <form onSubmit={handleEditSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย) <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
-                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="ชื่อ" value={editForm.thai_first_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_first_name: e.target.value }))} />
-                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="นามสกุล" value={editForm.thai_last_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_last_name: e.target.value }))} />
+                    <input type="text" required className="border px-3 py-2 flex-1 rounded" placeholder="ชื่อ" value={editForm.thai_first_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_first_name: e.target.value }))} />
+                    <input type="text" required className="border px-3 py-2 flex-1 rounded" placeholder="นามสกุล" value={editForm.thai_last_name || ''} onChange={e => setEditForm(f => ({ ...f, thai_last_name: e.target.value }))} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (English)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ภาษาอังกฤษ) <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
-                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="First name" value={editForm.first_name || ''} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
-                    <input type="text" className="border px-3 py-2 flex-1 rounded" placeholder="Last name" value={editForm.last_name || ''} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
+                    <input type="text" required className="border px-3 py-2 flex-1 rounded" placeholder="First name" value={editForm.first_name || ''} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
+                    <input type="text" required className="border px-3 py-2 flex-1 rounded" placeholder="Last name" value={editForm.last_name || ''} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">เพศ</label>
-                  <select className="border px-3 py-2 w-full rounded" value={editForm.gender || ''} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เพศ <span className="text-red-500">*</span></label>
+                  <select required className="border px-3 py-2 w-full rounded" value={editForm.gender || ''} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
                     <option value="">-- เลือก --</option>
                     <option value="M">ชาย</option>
                     <option value="F">หญิง</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด</label>
-                  <input type="date" className="border px-3 py-2 w-full rounded" value={editForm.dob || ''} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด <span className="text-red-500">*</span></label>
+                  <input required type="date" className="border px-3 py-2 w-full rounded" value={editForm.dob || ''} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
-                  <input type="tel" className="border px-3 py-2 w-full rounded" value={editForm.tel || ''} onChange={e => setEditForm(f => ({ ...f, tel: e.target.value }))} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร <span className="text-red-500">*</span></label>
+                  <input required type="tel" className="border px-3 py-2 w-full rounded" value={editForm.tel || ''} onChange={e => setEditForm(f => ({ ...f, tel: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
-                  <input type="email" className="border px-3 py-2 w-full rounded" value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล <span className="text-red-500">*</span></label>
+                  <input required type="email" className="border px-3 py-2 w-full rounded" value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
-                  <select className="border px-3 py-2 w-full rounded" value={editForm.department || ''} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">แผนก <span className="text-red-500">*</span></label>
+                  <select required className="border px-3 py-2 w-full rounded" value={editForm.department || ''} onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}>
                     <option value="">-- เลือก --</option>
                     {groupNames.map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                  <select className="border px-3 py-2 w-full rounded" value={editForm.status || ''} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ <span className="text-red-500">*</span></label>
+                  <select required className="border px-3 py-2 w-full rounded" value={editForm.status || ''} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
                     <option value="ACTIVE">ปฏิบัติงาน</option>
                     <option value="RESIGNED">ลาออก</option>
                   </select>

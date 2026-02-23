@@ -514,9 +514,10 @@ function A_AddStudent() {
             <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลนักเรียน</h2>
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ไทย) <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
                   <input
+                  required
                     type="text"
                     className="border px-3 py-2 flex-1 rounded"
                     placeholder="ชื่อ"
@@ -524,6 +525,7 @@ function A_AddStudent() {
                     onChange={(e) => setEditForm((f) => ({ ...f, thai_first_name: e.target.value }))}
                   />
                   <input
+                  required
                     type="text"
                     className="border px-3 py-2 flex-1 rounded"
                     placeholder="นามสกุล"
@@ -533,16 +535,18 @@ function A_AddStudent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (English)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (English) <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    required
                     className="border px-3 py-2 flex-1 rounded"
                     placeholder="First name"
                     value={editForm.first_name || ''}
                     onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))}
                   />
                   <input
+                  required
                     type="text"
                     className="border px-3 py-2 flex-1 rounded"
                     placeholder="Last name"
@@ -552,8 +556,9 @@ function A_AddStudent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เพศ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เพศ <span className="text-red-500">*</span></label>
                 <select
+                required
                   className="border px-3 py-2 w-full rounded"
                   value={editForm.gender || ''}
                   onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
@@ -564,8 +569,9 @@ function A_AddStudent() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">วันเกิด <span className="text-red-500">*</span></label>
                 <input
+                required
                   type="date"
                   className="border px-3 py-2 w-full rounded"
                   value={editForm.dob || ''}
@@ -573,8 +579,9 @@ function A_AddStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร <span className="text-red-500">*</span></label>
                 <input
+                required
                   type="tel"
                   className="border px-3 py-2 w-full rounded"
                   value={editForm.tel || ''}
@@ -582,8 +589,9 @@ function A_AddStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล <span className="text-red-500">*</span></label>
                 <input
+                required
                   type="email"
                   className="border px-3 py-2 w-full rounded"
                   placeholder="เช่น example@email.com"
@@ -592,8 +600,9 @@ function A_AddStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ <span className="text-red-500">*</span></label>
                 <input
+                required
                   type="text"
                   className="border px-3 py-2 w-full rounded"
                   value={editForm.address || ''}
@@ -601,8 +610,9 @@ function A_AddStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ <span className="text-red-500">*</span></label>
                 <select
+                required
                   className="border px-3 py-2 w-full rounded"
                   value={editForm.status || ''}
                   onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
