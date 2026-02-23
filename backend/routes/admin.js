@@ -1,5 +1,6 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcrypt');
 const { parse } = require('csv-parse/sync');
 const pool = require('../lib/db');
@@ -17,6 +18,16 @@ router.use(requireAuth, requireAdmin);
 const tn = (f, l) => (f && l ? `${String(f).trim().toLowerCase()}.${String(l).trim().toLowerCase()[0]}` : null);
 // null coalescing
 const n = (x) => x ?? null;
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+const PLACEHOLDER_AVATAR = 'avatars/avatar-placeholder.jpg';
+
+const deleteAvatarIfUploaded = (avatarPath) => {
+  if (!avatarPath || String(avatarPath).trim() === '' || avatarPath === PLACEHOLDER_AVATAR) return;
+  try {
+    const fullPath = path.join(uploadsDir, avatarPath);
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) fs.unlinkSync(fullPath);
+  } catch (_) { /* ignore */ }
+};
 
 // เช็คว่าวันเกิดอยู่เกินวันที่ปัจจุบันไหม
 const isFutureDob = (dob) => {
@@ -70,6 +81,19 @@ router.post('/teachers/csv', uploadCsv.single('csv'), handle(async (req, res) =>
     created.push({ username: uname, password: pw });
   }
   res.json({ success: true, message: `สร้างบัญชีครูผู้สอนสำเร็จ ${created.length} บัญชี`, account: created });
+}));
+
+router.delete('/teachers/:id', handle(async (req, res) => {
+  const tid = parseInt(req.params.id, 10);
+  if (isNaN(tid)) return bad(res, 'Invalid teacher ID');
+  const [[u]] = await pool.query("SELECT avatar FROM User WHERE refID = ? AND role = 'TEACHER'", [tid]);
+  if (u?.avatar) deleteAvatarIfUploaded(u.avatar);
+  await pool.query('UPDATE Classroom SET responsibleTeacherID = NULL WHERE responsibleTeacherID = ?', [tid]);
+  await pool.query('DELETE FROM ClassSchedule WHERE teacherID = ?', [tid]);
+  await pool.query('DELETE FROM ClassroomSubject WHERE teacherID = ?', [tid]);
+  await pool.query("DELETE FROM User WHERE refID = ? AND role = 'TEACHER'", [tid]);
+  await pool.query('DELETE FROM Teacher WHERE teacherID = ?', [tid]);
+  ok(res, null, 'ลบครูผู้สอนสำเร็จ');
 }));
 
 router.put('/teachers/:id', express.json(), handle(async (req, res) => {
@@ -139,6 +163,18 @@ router.get('/students', handle(async (_, res) => {
   const [r] = await pool.query(`SELECT s.studentID, s.first_name, s.last_name, s.thai_first_name, s.thai_last_name, u.username AS studentCode, s.gender, s.dob, s.tel, s.address, s.email, s.status
     FROM Student s JOIN User u ON u.refID = s.studentID AND u.role = 'STUDENT' ORDER BY u.username`);
   ok(res, r);
+}));
+
+router.delete('/students/:id', handle(async (req, res) => {
+  const sid = parseInt(req.params.id, 10);
+  if (isNaN(sid)) return bad(res, 'Invalid student ID');
+  const [[u]] = await pool.query("SELECT avatar FROM User WHERE refID = ? AND role = 'STUDENT'", [sid]);
+  if (u?.avatar) deleteAvatarIfUploaded(u.avatar);
+  await pool.query('DELETE FROM Score WHERE studentID = ?', [sid]);
+  await pool.query('DELETE FROM StudentClass WHERE studentID = ?', [sid]);
+  await pool.query("DELETE FROM User WHERE refID = ? AND role = 'STUDENT'", [sid]);
+  await pool.query('DELETE FROM Student WHERE studentID = ?', [sid]);
+  ok(res, null, 'ลบนักเรียนสำเร็จ');
 }));
 
 router.put('/students/:id', express.json(), handle(async (req, res) => {

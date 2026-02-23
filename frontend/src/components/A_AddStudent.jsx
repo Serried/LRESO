@@ -23,6 +23,7 @@ function A_AddStudent() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const openEditModal = (s) => {
     setSelectedStudent(s);
@@ -105,6 +106,33 @@ function A_AddStudent() {
     if (file) {
       setAvatarFile(file);
       setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleDeleteClick = (e, s) => {
+    if (e) e.stopPropagation();
+    setDeleteConfirm(s);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    const s = deleteConfirm;
+    setDeleteConfirm(null);
+    setErrorMessage({ text: '', isError: false });
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/students/${s.studentID}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage({ text: data.message || 'เกิดข้อผิดพลาด', isError: true });
+        return;
+      }
+      setErrorMessage({ text: data.message || 'ลบสำเร็จ', isError: false });
+      fetchStudents();
+      if (selectedStudent?.studentID === s.studentID) closeEditModal();
+    } catch (err) {
+      console.error(err);
+      setErrorMessage({ text: 'เกิดข้อผิดพลาด', isError: true });
     }
   };
 
@@ -548,6 +576,13 @@ function A_AddStudent() {
                 <button type="button" className="btn btn-ghost" onClick={closeEditModal}>
                   ยกเลิก
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => handleDeleteClick(null, selectedStudent)}
+                >
+                  ลบ
+                </button>
               </div>
             </form>
           </div>
@@ -589,6 +624,22 @@ function A_AddStudent() {
             </div>
           </div>
           <div className="modal-backdrop" onClick={() => setCsvSuccessAccounts(null)} aria-hidden />
+        </div>
+      )}
+      {/* ยืนยันลบ */}
+      {deleteConfirm && (
+        <div className="modal modal-open">
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg">ยืนยันการลบ</h3>
+            <p className="py-4">
+              ต้องการลบนักเรียน {(deleteConfirm.thai_first_name || deleteConfirm.thai_last_name) ? `${deleteConfirm.thai_first_name || ''} ${deleteConfirm.thai_last_name || ''}`.trim() : deleteConfirm.studentCode || deleteConfirm.studentID} ใช่หรือไม่?
+            </p>
+            <div className="modal-action">
+              <button type="button" className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>ยกเลิก</button>
+              <button type="button" className="btn btn-error text-white" onClick={handleDeleteConfirm}>ยืนยัน</button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setDeleteConfirm(null)} aria-hidden />
         </div>
       )}
       {showCalendar && (
