@@ -363,6 +363,33 @@ router.put('/classrooms/:classID/schedule', express.json(), handle(async (req, r
   for (const tid of teacherIds) {
     if (await isTeacherResigned(tid)) return bad(res, 'ไม่สามารถกำหนดครูที่ลาออกแล้วในตารางเรียนได้');
   }
+  const key = (s) => `${s.teacherID ?? 'x'}-${parseInt(s.dayOfWeek, 10)}-${parseInt(s.period, 10)}`;
+  const seen = new Set();
+  for (const s of slots) {
+    const tid = s.teacherID != null ? parseInt(s.teacherID, 10) : null;
+    if (tid == null || isNaN(tid)) continue;
+    const k = key(s);
+    if (seen.has(k)) {
+      const [[t]] = await pool.query('SELECT trim(coalesce(thai_first_name,\'\')||\' \'||coalesce(thai_last_name,\'\')) AS name FROM Teacher WHERE teacherID = ?', [tid]);
+      return bad(res, `ครู${t?.name ? ' ' + t.name.trim() : ''} มีคาบซ้อนเวลา (วันที่ ${s.dayOfWeek} คาบที่ ${s.period}) ในห้องนี้`);
+    }
+    seen.add(k);
+  }
+  // กันตารางสอนครูคนเดียวกัน คนละวิชา คนละห้อง แต่เวลาเดียวกันลงเวลาสอนทับกัน
+  for (const s of slots) {
+    const tid = s.teacherID != null ? parseInt(s.teacherID, 10) : null;
+    const dow = parseInt(s.dayOfWeek, 10);
+    const period = parseInt(s.period, 10);
+    if (tid == null || isNaN(tid) || isNaN(dow) || isNaN(period)) continue;
+    const [existing] = await pool.query(
+      `SELECT c.className FROM ClassSchedule cs JOIN Classroom c ON c.classID = cs.classID WHERE cs.teacherID = ? AND cs.year = ? AND cs.term = ? AND cs.dayOfWeek = ? AND cs.period = ? AND cs.classID != ?`,
+      [tid, y, t, dow, period, cid]
+    );
+    if (existing?.length) {
+      const [[tRow]] = await pool.query('SELECT trim(coalesce(thai_first_name,\'\')||\' \'||coalesce(thai_last_name,\'\')) AS name FROM Teacher WHERE teacherID = ?', [tid]);
+      return bad(res, `ครู${tRow?.name ? ' ' + tRow.name.trim() : ''} มีคาบซ้อนกับห้อง ${existing[0].className} (วันที่ ${dow} คาบที่ ${period})`);
+    }
+  }
   dbRaw.exec('BEGIN TRANSACTION');
   try {
     dbRaw.prepare('DELETE FROM ClassSchedule WHERE classID = ? AND year = ? AND term = ?').run(cid, y, t);
