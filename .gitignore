@@ -27,4 +27,6 @@ dist-ssr
 
 # SQLite database (local)
 # backend/lreso.db
+lreso.test.db
 # backend/uploads/
+backend/lreso.db

@@ -1,0 +1,17 @@
+{
+  "name": "lreso-root",
+  "private": true,
+  "scripts": {
+    "test": "node tests/init-db.js && jest",
+    "test:only": "node tests/init-db.js && jest",
+    "test:init": "node tests/init-db.js",
+    "test:backend": "jest --testPathPattern=tests/backend"
+  },
+  "devDependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
+    "jest": "^29.7.0",
+    "jsonwebtoken": "^9.0.3",
+    "supertest": "^7.0.0"
+  }
+}
