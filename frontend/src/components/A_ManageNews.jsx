@@ -231,6 +231,9 @@ function A_ManageNews() {
             </select>
 
             <div className="mb-3">
+            <label className="block text-sm text-gray-600 mb-1">
+                  หมดอายุเมื่อ (ไม่บังคับ)
+                </label>
               {serverNow && (
                 <p className="text-xs text-gray-500 mb-1">
                   เวลาของเซิร์ฟเวอร์: {serverNow.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short", hour12: false })}
