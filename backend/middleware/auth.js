@@ -10,7 +10,7 @@ function requireAuth(req, res, next) {
     req.user = jwt.verify(token, secret);
     next();
   } catch {
-    res.status(401).json({ success: false, message: 'โทเคนไม่ถูกต้อง' });
+    return res.status(401).json({ success: false, message: 'โทเคนไม่ถูกต้อง' });
   }
 }
 

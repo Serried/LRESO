@@ -1,13 +1,28 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const DASH = { ADMIN: '/me/admin', TEACHER: '/me/teacher', STUDENT: '/me/student' };
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
 export default function NavBar() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [avatarPath, setAvatarPath] = useState(user.avatar || 'avatars/avatar-placeholder.jpg');
+
+  useEffect(() => {
+    if (!user.id || !localStorage.getItem('token')) return;
+    const role = user.role;
+    const path = role === 'ADMIN' ? '/api/me/admin' : role === 'TEACHER' ? '/api/me/teacher' : role === 'STUDENT' ? '/api/me/student' : null;
+    if (!path) return;
+    fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then((r) => r.json())
+      .then((res) => res.success && res.data?.avatar && setAvatarPath(res.data.avatar))
+      .catch(() => {});
+  }, [user.id, user.role]);
+
   const path = DASH[user.role] || '/';
   const name = [user.thai_first_name, user.thai_last_name].filter(Boolean).join(' ') || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'ผู้ใช้';
-  const avatar = user.avatar ? `/uploads/${user.avatar}` : 'https://placehold.co/45';
+  const avatar = `${API}/uploads/${avatarPath}`;
   const location = useLocation();
 
   return (
