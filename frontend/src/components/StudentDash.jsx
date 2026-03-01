@@ -26,7 +26,8 @@ export default function StudentDash() {
     }).catch(console.error);
   }, []);
 
-  const avatarUrl = user.avatar ? `/uploads/${user.avatar}` : 'https://placehold.co/80';
+  const UPLOADS = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+  const avatarUrl = (student?.avatar || user.avatar) ? `${UPLOADS}/uploads/${student?.avatar || user.avatar}` : 'https://placehold.co/80';
   const c = classes[0];
   const age = student?.dob ? new Date().getFullYear() - new Date(student.dob).getFullYear() : null;
 

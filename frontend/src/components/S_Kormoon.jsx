@@ -60,9 +60,14 @@ function S_Kormoon() {
     try {
       const formData = new FormData();
       formData.append("avatar", file);
-      const res = await fetch(`/api/users/me/avatar`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAvatarError("กรุณาเข้าสู่ระบบอีกครั้ง");
+        return;
+      }
+      const res = await fetch(`http://localhost:3000/api/users/me/avatar`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await res.json();
@@ -107,8 +112,9 @@ function S_Kormoon() {
     );
   }
 
+  const UPLOADS = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
   const avatarUrl = student.avatar
-    ? `/uploads/${student.avatar}`
+    ? `${UPLOADS}/uploads/${student.avatar}`
     : "https://placehold.co/120";
 
   const fields = [

@@ -1,32 +1,37 @@
 @echo off
 title Fullstack Dev Launcher
+cd /d %~dp0
 
-echo ===============================
-echo Installing Backend Dependencies
-echo ===============================
-cd backend
+echo Setting up Backend .env...
+if not exist backend\.env (
+(
+echo JWT_SECRET=weogeawi
+) > backend\.env
+)
+
+echo Installing Backend...
+pushd backend
 call npm install
+popd
 
-echo ===============================
-echo Installing Frontend Dependencies
-echo ===============================
-cd ../frontend
+echo Installing Frontend...
+pushd frontend
 call npm install
+popd
 
-echo ===============================
-echo Starting Backend Server
-echo ===============================
-start cmd /k "cd backend && npm run dev"
+echo Starting Backend...
+start "Backend" cmd /k "cd /d %~dp0backend && npx nodemon ."
 
 timeout /t 3 > nul
 
-echo ===============================
-echo Starting Frontend Server
-echo ===============================
-start cmd /k "cd frontend && npm start"
+echo Starting Frontend...
+start "Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
 
-echo ===============================
+echo Waiting for Frontend to boot...
+timeout /t 5 > nul
+
+echo Opening Browser...
+start http://localhost:5173
+
 echo All services are running!
-echo ===============================
-
 pause
