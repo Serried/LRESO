@@ -30,11 +30,11 @@ router.get('/news/featured', handle(async (_, res) => {
   const [row] = await pool.query(`
     SELECT DISTINCT * 
     FROM Announcement 
-    WHERE targetRole = 'ALL'
-    ORDER BY isPinned DESC
+    WHERE targetRole = 'ALL' AND (expireAt IS NULL OR datetime(expireAt) > datetime('now', 'localtime'))
+    ORDER BY isPinned DESC, createdAt DESC
     LIMIT 3;
-    `)
-    ok(res, row);
-}))
+  `);
+  ok(res, row);
+}));
 
 module.exports = router;

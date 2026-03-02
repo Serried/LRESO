@@ -40,7 +40,7 @@ router.get('/teacher/schedule', requireTeacher, handle(async (req, res) => {
 
 router.get('/teacher/news', requireTeacher, handle(async (req, res) => {
   const [r] = await pool.query(`SELECT a.*, u.thai_first_name, u.thai_last_name, u.role, u.avatar FROM Announcement a LEFT JOIN User u ON a.createdBy = u.userID
-    WHERE (a.targetRole IN ('TEACHER','ALL') AND (a.expireAt IS NULL OR a.expireAt > CURRENT_TIMESTAMP)) OR a.createdBy = ?
+    WHERE (a.targetRole IN ('TEACHER','ALL') AND (a.expireAt IS NULL OR datetime(a.expireAt) > datetime('now', 'localtime'))) OR a.createdBy = ?
     ORDER BY a.isPinned DESC, a.createdAt DESC`, [uid(req)]);
   ok(res, r);
 }));
@@ -92,7 +92,7 @@ router.get('/admin', requireAdmin, handle(async (req, res) => {
 
 router.get('/student/news', requireStudent, handle(async (_, res) => {
   const [r] = await pool.query(`SELECT a.*, u.thai_first_name, u.thai_last_name, u.role, u.avatar, u.gender FROM Announcement a INNER JOIN User u ON a.createdBy = u.userID
-    WHERE (a.targetRole IN ('STUDENT','ALL')) AND (a.expireAt IS NULL OR a.expireAt > CURRENT_TIMESTAMP) ORDER BY a.isPinned DESC, a.createdAt DESC`);
+    WHERE (a.targetRole IN ('STUDENT','ALL')) AND (a.expireAt IS NULL OR datetime(a.expireAt) > datetime('now', 'localtime')) ORDER BY a.isPinned DESC, a.createdAt DESC`);
   ok(res, r);
 }));
 
