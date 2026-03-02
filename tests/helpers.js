@@ -22,4 +22,6 @@ const getToken = (role = 'admin') => {
 
 const authHeader = (role = 'admin') => ({ Authorization: `Bearer ${getToken(role)}` });
 
-module.exports = { SEED, getToken, authHeader };
+const yt = () => ({ year: new Date().getFullYear() + 543, term: 1 });
+
+module.exports = { SEED, getToken, authHeader, yt };

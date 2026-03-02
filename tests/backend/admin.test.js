@@ -1,6 +1,7 @@
+const path = require('path');
 const request = require('supertest');
 const app = require('../../backend/app');
-const { authHeader } = require('../helpers');
+const { authHeader, yt } = require('../helpers');
 
 describe('Admin API', () => {
   const adminAuth = authHeader('admin');
@@ -44,5 +45,52 @@ describe('Admin API', () => {
   it('PUT /api/admin/students/:id updates student', async () => {
     const res = await request(app).put('/api/admin/students/1').set(adminAuth).send({ first_name: 'Jane', last_name: 'Smith', status: 'STUDYING' });
     expect(res.status).toBe(200);
+  });
+
+  describe('Teacher creation - same name allowed (unique username)', () => {
+    it('POST /api/admin/teachers creates multiple teachers with same name (each gets unique username)', async () => {
+      const avatarPath = path.join(__dirname, '../fixtures/avatar.jpg');
+      const res1 = await request(app)
+        .post('/api/admin/teachers')
+        .set(adminAuth)
+        .field('first_name', 'Jane')
+        .field('last_name', 'Smith')
+        .field('email', 'jane.smith1@test.ac.th')
+        .attach('avatar', avatarPath);
+      expect(res1.status).toBe(200);
+      const m1 = res1.body.message.match(/jane\.s\d*/);
+      expect(m1).toBeTruthy();
+      const res2 = await request(app)
+        .post('/api/admin/teachers')
+        .set(adminAuth)
+        .field('first_name', 'Jane')
+        .field('last_name', 'Smith')
+        .field('email', 'jane.smith2@test.ac.th')
+        .attach('avatar', avatarPath);
+      expect(res2.status).toBe(200);
+      const m2 = res2.body.message.match(/jane\.s\d*/);
+      expect(m2).toBeTruthy();
+      expect(m2[0]).not.toBe(m1[0]);
+    });
+  });
+
+  describe('Schedule - teacher overlap prevention', () => {
+    it('PUT /api/admin/classrooms/:classID/schedule rejects same teacher at same day/period in another class', async () => {
+      const { year, term } = yt();
+      await request(app)
+        .post('/api/admin/subjects/add-subject')
+        .set(adminAuth)
+        .send({ classID: 2, subjectID: 1, teacherID: 1, year, term });
+      const res = await request(app)
+        .put('/api/admin/classrooms/2/schedule')
+        .set(adminAuth)
+        .send({
+          year,
+          term,
+          slots: [{ subjectID: 1, teacherID: 1, dayOfWeek: 1, period: 1 }],
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/คาบ/);
+    });
   });
 });

@@ -30,4 +30,26 @@ describe('Misc API', () => {
     const res = await request(app).post('/api/ticket').send({ content: 'No topic' });
     expect(res.status).toBe(400);
   });
+
+  describe('Announcement expiration', () => {
+    it('GET /api/news/featured excludes expired announcements', async () => {
+      const Database = require('better-sqlite3');
+      const db = new Database(process.env.SQLITE_DB_PATH);
+      const adminId = db.prepare('SELECT userID FROM User WHERE role = ?').get('ADMIN')?.userID || 1;
+      db.prepare(
+        'INSERT INTO Announcement (title, content, createdBy, targetRole, expireAt, category, isPinned) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run('Expired announcement', 'This should not appear', adminId, 'ALL', '2020-01-01T00:00:00', 'GENERAL', 0);
+      const lastId = db.prepare('SELECT last_insert_rowid() as id').get().id;
+      db.close();
+
+      const res = await request(app).get('/api/news/featured');
+      expect(res.status).toBe(200);
+      const ids = (res.body.data || []).map((a) => a.announceID ?? a.announcementID ?? a.id);
+      expect(ids).not.toContain(lastId);
+
+      const db2 = new Database(process.env.SQLITE_DB_PATH);
+      db2.prepare('DELETE FROM Announcement WHERE announceID = ?').run(lastId);
+      db2.close();
+    });
+  });
 });
