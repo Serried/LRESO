@@ -393,6 +393,15 @@ function A_ManageSubject() {
       return;
     }
     if (form.teacherID && form.groupName) {
+      const selectedTeacher = teachers.find(t => String(t.teacherID) === String(form.teacherID));
+      if (selectedTeacher && selectedTeacher.department !== form.groupName) {
+        setToastMsg(`ครูไม่อยู่ในแผนกเดียวกับกลุ่มสาระ (แผนกของครู: ${selectedTeacher.department || 'ไม่ระบุ'})`);
+        setToastSuccess(false);
+        setTimeout(() => setToastMsg(null), 5000);
+        return;
+      }
+    }
+
     const parsed = parseAcademicYear(form.academicYear);
     if (!parsed) {
       setToastMsg("รูปแบบปีการศึกษาไม่ถูกต้อง (ใช้รูปแบบ เทอม/ปี พ.ศ. เช่น 1/2569)");
