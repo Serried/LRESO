@@ -11,14 +11,14 @@ const DAYS = [
 ];
 
 const PERIODS = [
-  { period: 1, time: "8:30 - 9:20" },
+ { period: 1, time: "8:30 - 9:20" },
   { period: 2, time: "9:20 - 10:10" },
   { period: 3, time: "10:10 - 11:00" },
   { period: 4, time: "11:00 - 11:50" },
-  { period: 5, time: "12:40 - 13:30", isLunch: true },
-  { period: 6, time: "13:30 - 14:20" },
-  { period: 7, time: "14:20 - 15:10" },
-  { period: 8, time: "15:10 - 16:00" },
+  { period: 5, time: "11:50 - 12:40", isLunch: true },
+  { period: 6, time: "12:40 - 13:30" },
+  { period: 7, time: "13:30 - 14:20" },
+  { period: 8, time: "14:20 - 15:10" }, 
 ];
 
 function S_Schedule() {
