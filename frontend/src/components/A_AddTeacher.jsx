@@ -4,6 +4,16 @@ import DatePicker from './DatePicker';
 import CalendarModal from './CalendarModal';
 import { isValidThaiName, isValidEnglishName } from '../utils/nameValidation';
 
+const GROUP_NAMES = [
+  "กลุ่มสาระการเรียนรู้ภาษาไทย",
+  "กลุ่มสาระการเรียนรู้คณิตศาสตร์",
+  "กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี",
+  "กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนา และวัฒนธรรม",
+  "กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา",
+  "กลุ่มสาระการเรียนรู้ศิลปะ",
+  "กลุ่มสาระการเรียนรู้การงานอาชีพ",
+  "กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ"
+];
 
 function A_AddTeacher() {
 
@@ -13,7 +23,7 @@ function A_AddTeacher() {
   const [thaiLastName, setThaiLastName] = useState('');
   const [gender, setGender] = useState('M');
   const [department, setDepartment] = useState('');
-  const [groupNames, setGroupNames] = useState([]);
+  const [groupNames, setGroupNames] = useState(GROUP_NAMES);
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -165,18 +175,6 @@ function A_AddTeacher() {
       .then(result => { if (result.success && Array.isArray(result.data)) setTeachers(result.data); })
       .catch(() => {});
   };
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(`/api/subjects/group-names`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success && Array.isArray(result.data)) setGroupNames(result.data);
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => { fetchTeachers(); }, []);
 

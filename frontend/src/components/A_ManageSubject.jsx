@@ -392,6 +392,7 @@ function A_ManageSubject() {
       setTimeout(() => setToastMsg(null), 5000);
       return;
     }
+    if (form.teacherID && form.groupName) {
     const parsed = parseAcademicYear(form.academicYear);
     if (!parsed) {
       setToastMsg("รูปแบบปีการศึกษาไม่ถูกต้อง (ใช้รูปแบบ เทอม/ปี พ.ศ. เช่น 1/2569)");
